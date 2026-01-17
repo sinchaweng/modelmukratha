@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Mookata Management System - Project</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
+        
+        body, button, input, select, textarea, p, h1, h2, h3, h4, span, div {
+            font-family: 'Kanit', sans-serif !important;
+        }
+        .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900;
+        }
+        body { background-color: #f8fafc; }
+
+        @media print {
+        .no-print { 
+            display: none !important; 
+        }
+        body { 
+            background-color: white !important; 
+        }
+        /* ซ่อน Sidebar และปรับพื้นที่เนื้อหา */
+        aside { display: none !important; }
+        main { margin-left: 0 !important; padding: 0 !important; }
+    }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="app">
+        <page-login v-if="currentPage === 'login'" @login-success="handleLogin"></page-login>
+
+        <div v-else class="flex min-h-screen">
+            <aside class="w-64 bg-slate-900 text-white p-6 shadow-xl flex flex-col fixed h-full no-print">
+                <div class="text-2xl font-bold text-orange-500 mb-10 flex items-center gap-2">
+                    <i class="fas fa-fire"></i> MuKratha
+                </div>
+                <nav class="space-y-2 flex-1">
+                    <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
+                        <i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล
+                    </button>
+                    <button @click="currentPage = 'stock'" :class="currentPage === 'stock' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
+                        <i class="fas fa-boxes"></i> จัดการวัตถุดิบ
+                    </button>
+                    <button @click="currentPage = 'wastage'" :class="currentPage === 'wastage' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
+                        <i class="fas fa-trash-alt"></i> บันทึกของเสีย
+                    </button>
+                    <button @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
+                        <i class="fas fa-truck"></i> ข้อมูลคู่ค้า/Supplier
+                    </button>
+                    <button @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
+                        <i class="fas fa-file-invoice"></i> ระบบรายงาน
+                    </button>
+                    <hr class="border-slate-700 my-4">
+                    <button @click="showLogoutModal = true" class="flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-900/30 p-3 rounded-xl transition">
+                        <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+                    </button>
+                </nav>
+            </aside>
+
+            <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
+                <component :is="'page-' + currentPage" :stock-data="inventory" :suppliers="suppliers"
+                    :wastage-logs="wastageLogs" @update-stock="saveData">
+                </component>
+            </main>
+        </div>
+
+        <div v-if="showLogoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-sign-out-alt text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-2">ยืนยันออกจากระบบ?</h3>
+                    <p class="text-slate-500 mb-8 italic text-sm">คุณต้องการออกจากระบบในขณะนี้หรือไม่?</p>
+                    <div class="flex gap-4">
+                        <button @click="showLogoutModal = false" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition">ยกเลิก</button>
+                        <button @click="confirmLogout" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 transition">ยืนยัน</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/login.js"></script>
+    <script src="components/stock.js"></script>
+    <script src="components/reports.js"></script>
+    <script src="components/dashboard.js"></script>
+    <script src="components/suppliers.js"></script>
+    <script src="components/wastage.js"></script>
+
+    <script>
+        const { createApp, ref } = Vue;
+        const app = createApp({
+            setup() {
+                const currentPage = ref('login');
+                const showLogoutModal = ref(false);
+
+                const inventory = ref([
+                    { id: 1, name: 'เนื้อหมูสันคอ', cat: 'เนื้อสัตว์', qty: 10, min: 5, unit: 'กก.', price: 150, expiry: '2026-02-01', history: [] },
+                    { id: 2, name: 'น้ำจิ้มสุกี้', cat: 'เครื่องปรุง', qty: 2, min: 5, unit: 'แกลลอน', price: 200, expiry: '2026-05-10', history: [] }
+                ]);
+
+                const suppliers = ref([
+                    { id: 1, name: 'บริษัท ซีพี เอฟ', contact: '02-123-4567', productCat: 'เนื้อสัตว์' },
+                    { id: 2, name: 'ตลาดไท เจ้แดง', contact: '081-999-8888', productCat: 'ผักสด' }
+                ]);
+
+                const wastageLogs = ref([
+                    { id: 1, itemName: 'เนื้อหมูสันคอ', qty: 1, unit: 'กก.', reason: 'หมดอายุ', cost: 150, date: '2026-01-12' }
+                ]);
+
+                const handleLogin = () => currentPage.value = 'dashboard';
+                const confirmLogout = () => {
+                    currentPage.value = 'login';
+                    showLogoutModal.value = false;
+                };
+                const saveData = (newData) => inventory.value = newData;
+
+                return {
+                    currentPage, showLogoutModal, confirmLogout,
+                    inventory, suppliers, wastageLogs, handleLogin, saveData
+                };
+            }
+        });
+
+        app.component('page-login', LoginView);
+        app.component('page-stock', StockView);
+        app.component('page-reports', ReportView);
+        app.component('page-dashboard', DashboardView);
+        app.component('page-suppliers', SupplierView);
+        app.component('page-wastage', WastageView);
+        app.mount('#app');
+    </script>
+</body>
+</html>
