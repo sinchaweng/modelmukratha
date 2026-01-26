@@ -2,33 +2,38 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Mookata Management System - Project</title>
+    <title>MuKratha Management System - Project</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
         
-        body, button, input, select, textarea, p, h1, h2, h3, h4, span, div {
+        /* บังคับฟอนต์ Kanit ทั้งระบบให้ขนาดพอดีคำ */
+        * {
             font-family: 'Kanit', sans-serif !important;
+            -webkit-font-smoothing: antialiased;
         }
-        .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands {
+
+        /* ป้องกันฟอนต์ไอคอนเพี้ยน */
+        .fas, .far, .fab, .fa-solid, .fa-regular {
             font-family: "Font Awesome 6 Free" !important;
             font-weight: 900;
         }
+
         body { background-color: #f8fafc; }
 
+        /* การตั้งค่าสำหรับการพิมพ์ (Print Settings) */
         @media print {
-        .no-print { 
-            display: none !important; 
+            .no-print { display: none !important; }
+            aside { display: none !important; }
+            main { 
+                margin-left: 0 !important; 
+                padding: 0 !important; 
+                width: 100% !important;
+            }
+            body { background-color: white !important; }
         }
-        body { 
-            background-color: white !important; 
-        }
-        /* ซ่อน Sidebar และปรับพื้นที่เนื้อหา */
-        aside { display: none !important; }
-        main { margin-left: 0 !important; padding: 0 !important; }
-    }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -64,14 +69,22 @@
             </aside>
 
             <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
-                <component :is="'page-' + currentPage" :stock-data="inventory" :suppliers="suppliers"
-                    :wastage-logs="wastageLogs" @update-stock="saveData">
+                <component 
+                    :is="'page-' + currentPage" 
+        :stock-data="inventory" 
+        :suppliers="suppliers"
+        :wastage-logs="wastageLogs" 
+        :categories="categories"
+        :units="units" 
+        @update-stock="saveData"
+        @add-category="addCategory"
+        @add-unit="addUnit">
                 </component>
             </main>
         </div>
 
-        <div v-if="showLogoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-            <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div v-if="showLogoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] no-print">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div class="p-8 text-center">
                     <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-sign-out-alt text-3xl"></i>
@@ -79,8 +92,8 @@
                     <h3 class="text-2xl font-bold text-slate-800 mb-2">ยืนยันออกจากระบบ?</h3>
                     <p class="text-slate-500 mb-8 italic text-sm">คุณต้องการออกจากระบบในขณะนี้หรือไม่?</p>
                     <div class="flex gap-4">
-                        <button @click="showLogoutModal = false" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition">ยกเลิก</button>
-                        <button @click="confirmLogout" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 transition">ยืนยัน</button>
+                        <button @click="showLogoutModal = false" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition text-sm">ยกเลิก</button>
+                        <button @click="confirmLogout" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 transition text-sm">ยืนยัน</button>
                     </div>
                 </div>
             </div>
@@ -95,47 +108,68 @@
     <script src="components/wastage.js"></script>
 
     <script>
-        const { createApp, ref } = Vue;
-        const app = createApp({
-            setup() {
-                const currentPage = ref('login');
-                const showLogoutModal = ref(false);
+    const { createApp, ref } = Vue;
+    const app = createApp({
+        setup() {
+            const currentPage = ref('login'); // หน้าแรกคือ Login
+            const showLogoutModal = ref(false);
 
-                const inventory = ref([
-                    { id: 1, name: 'เนื้อหมูสันคอ', cat: 'เนื้อสัตว์', qty: 10, min: 5, unit: 'กก.', price: 150, expiry: '2026-02-01', history: [] },
-                    { id: 2, name: 'น้ำจิ้มสุกี้', cat: 'เครื่องปรุง', qty: 2, min: 5, unit: 'แกลลอน', price: 200, expiry: '2026-05-10', history: [] }
-                ]);
+            // ข้อมูลเริ่มต้น
+            const categories = ref(['เนื้อสัตว์', 'ผักสด', 'เครื่องปรุง', 'เครื่องดื่ม']);
+            const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค']);
+            const inventory = ref([]);
+            const suppliers = ref([]);
+            const wastageLogs = ref([]);
 
-                const suppliers = ref([
-                    { id: 1, name: 'บริษัท ซีพี เอฟ', contact: '02-123-4567', productCat: 'เนื้อสัตว์' },
-                    { id: 2, name: 'ตลาดไท เจ้แดง', contact: '081-999-8888', productCat: 'ผักสด' }
-                ]);
+            // --- [จุดที่ต้องเพิ่ม] ฟังก์ชันสำหรับ Login ---
+            const handleLogin = () => {
+                currentPage.value = 'dashboard'; // เปลี่ยนหน้าไปที่ Dashboard
+            };
 
-                const wastageLogs = ref([
-                    { id: 1, itemName: 'เนื้อหมูสันคอ', qty: 1, unit: 'กก.', reason: 'หมดอายุ', cost: 150, date: '2026-01-12' }
-                ]);
+            const confirmLogout = () => {
+                currentPage.value = 'login';
+                showLogoutModal.value = false;
+            };
 
-                const handleLogin = () => currentPage.value = 'dashboard';
-                const confirmLogout = () => {
-                    currentPage.value = 'login';
-                    showLogoutModal.value = false;
-                };
-                const saveData = (newData) => inventory.value = newData;
+            const addCategory = (newCat) => {
+                if (newCat && !categories.value.includes(newCat)) { categories.value.push(newCat); }
+            };
 
-                return {
-                    currentPage, showLogoutModal, confirmLogout,
-                    inventory, suppliers, wastageLogs, handleLogin, saveData
-                };
-            }
-        });
+            const addUnit = (newUnit) => {
+                if (newUnit && !units.value.includes(newUnit)) { units.value.push(newUnit); }
+            };
 
-        app.component('page-login', LoginView);
-        app.component('page-stock', StockView);
-        app.component('page-reports', ReportView);
-        app.component('page-dashboard', DashboardView);
-        app.component('page-suppliers', SupplierView);
-        app.component('page-wastage', WastageView);
-        app.mount('#app');
-    </script>
+            const saveData = (newData) => {
+                inventory.value = newData;
+            };
+
+            // ส่งค่าและฟังก์ชันทั้งหมดออกไปให้หน้าเว็บใช้
+            return {
+                currentPage, 
+                showLogoutModal, 
+                inventory, 
+                suppliers,
+                wastageLogs,
+                categories, 
+                units,
+                handleLogin, // ต้องส่งฟังก์ชันนี้ออกไปด้วยถึงจะ Login ได้
+                confirmLogout,
+                addCategory, 
+                addUnit,
+                saveData
+            };
+        }
+    });
+
+    // ลงทะเบียน Component (ตรวจสอบให้มั่นใจว่าไฟล์ js เหล่านี้ถูกเรียกใช้ด้านบนแล้ว)
+    app.component('page-login', LoginView);
+    app.component('page-stock', StockView);
+    app.component('page-reports', ReportView);
+    app.component('page-dashboard', DashboardView);
+    app.component('page-suppliers', SupplierView);
+    app.component('page-wastage', WastageView);
+    
+    app.mount('#app');
+</script>
 </body>
 </html>

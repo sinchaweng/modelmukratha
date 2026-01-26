@@ -56,35 +56,48 @@ const ReportView = {
             </div>
         </div>
 
-        <div class="mt-8 bg-white p-6 rounded-3xl border shadow-sm">
-            <h3 class="font-bold border-b pb-4 mb-4 text-slate-700 flex items-center gap-2">
-                <i class="fas fa-history text-green-500"></i> 2. รายงานความเคลื่อนไหวและประวัติ รับเข้า-เบิกออก
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-slate-400 border-b italic font-normal text-[10px]">
-                            <th class="py-3 px-2 text-center">วันที่</th><th class="py-3 px-2">รายการ</th>
-                            <th class="py-3 px-2 text-center">ประเภท</th><th class="py-3 px-2 text-right">จำนวน</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(log, idx) in recentHistory" :key="idx" class="border-b border-slate-50 hover:bg-slate-50">
-                            <td class="py-4 px-2 text-slate-400 text-xs text-center">{{ log.date }}</td>
-                            <td class="py-4 px-2 font-bold">{{ log.item }}</td>
-                            <td class="py-4 px-2 text-center">
-                                <span :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'" class="font-bold">
-                                    {{ log.type === 'in' ? 'รับเข้า' : 'เบิกออก' }}
-                                </span>
-                            </td>
-                            <td class="py-4 px-2 text-right font-bold" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
-                                {{ log.type === 'in' ? '+' : '-' }} {{ log.qty }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      <div class="mt-6 bg-white p-6 rounded-3xl border shadow-sm">
+    <h3 class="text-lg font-bold text-slate-700 flex items-center gap-2 mb-6 border-b pb-4 text-left w-full">
+        <i class="fas fa-history text-green-500"></i> 
+        2. รายงานความเคลื่อนไหวและประวัติ รับเข้า-เบิกออก
+    </h3>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="text-slate-400 border-b italic font-bold text-[10px] uppercase tracking-wider">
+                    <th class="py-3 px-2 text-center w-1/4">วันที่</th>
+                    <th class="py-3 px-2 text-center w-1/4">รายการ</th>
+                    <th class="py-3 px-2 text-center w-1/4">ประเภท</th>
+                    <th class="py-3 px-2 text-right w-1/4 pr-8">จำนวน</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm">
+                <tr v-for="(log, idx) in recentHistory" :key="idx" class="border-b last:border-0 border-slate-50 hover:bg-slate-50 transition">
+                    <td class="py-4 px-2 text-slate-400 text-[11px] font-mono text-center">
+                        {{ log.date }}
+                    </td>
+                    <td class="py-4 px-2 font-bold text-slate-700 text-center">
+                        {{ log.item }}
+                    </td>
+                    <td class="py-4 px-2 text-center">
+                        <span :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'" class="font-bold">
+                            {{ log.type === 'in' ? 'รับเข้า' : 'เบิกออก' }}
+                        </span>
+                    </td>
+                    <td class="py-4 px-2 text-right font-black text-xl pr-8" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
+                        {{ log.type === 'in' ? '+' : '-' }} {{ log.qty }}
+                    </td>
+                </tr>
+                <tr v-if="recentHistory.length === 0">
+                    <td colspan="4" class="py-12 text-center text-slate-300 italic text-sm">
+                        ยังไม่มีประวัติความเคลื่อนไหว
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
         <component is="style">
             @media print {
