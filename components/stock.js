@@ -1,6 +1,5 @@
 const StockView = {
-    // รับข้อมูลจากไฟล์ index.html
-    props: ['stockData', 'categories', 'units'], 
+    props: ['stockData', 'categories', 'units', 'suppliers'], 
     data() {
         return {
             showAddModal: false,
@@ -14,7 +13,8 @@ const StockView = {
             newItem: { 
                 name: '', 
                 cat: '', 
-                qty: 0, // สำหรับเก็บจำนวนเริ่มต้น
+                supplier: '', 
+                qty: 0, 
                 min: 0, 
                 unit: '', 
                 price: 0 
@@ -28,13 +28,14 @@ const StockView = {
                 <h2 class="text-3xl font-bold text-slate-800">จัดการคลังวัตถุดิบ</h2>
             </div>
             <div class="flex gap-2">
-                <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
-                    <i class="fas fa-tags"></i> + เพิ่มหมวดหมู่
+                <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
+                    <i class="fas fa-tags"></i> + หมวดหมู่
                 </button>
-                <button @click="promptNewUnit" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
-                    <i class="fas fa-balance-scale"></i> + เพิ่มหน่วยนับ
+                <button @click="promptNewUnit" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
+                    <i class="fas fa-balance-scale"></i> + หน่วยนับ
                 </button>
-                <button @click="showAddModal = true" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 shadow-lg transition flex items-center gap-2 text-sm">
+                
+                <button @click="showAddModal = true" class="ml-2 bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 shadow-lg transition flex items-center gap-2 text-sm">
                     <i class="fas fa-plus-circle"></i> เพิ่มวัตถุดิบใหม่
                 </button>
             </div>
@@ -55,7 +56,8 @@ const StockView = {
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold border-b">
                     <tr>
-                        <th class="p-5">รายการวัตถุดิบ / ประเภท</th>
+                        <th class="p-5 w-1/3">รายการวัตถุดิบ / ประเภท</th>
+                        <th class="p-5 w-1/6">คู่ค้า</th>
                         <th class="p-5 text-center">ราคา/หน่วย</th>
                         <th class="p-5 text-center">คงเหลือ</th>
                         <th class="p-5 text-center">จัดการ</th>
@@ -66,6 +68,12 @@ const StockView = {
                         <td class="p-5 text-left">
                             <div class="font-bold text-slate-700 text-base group-hover:text-slate-900">{{ item.name }}</div>
                             <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ item.cat }}</div>
+                        </td>
+                        <td class="p-5 text-slate-600 text-xs">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-truck text-slate-300"></i>
+                                {{ item.supplier || '-' }}
+                            </div>
                         </td>
                         <td class="p-5 text-center text-slate-500 font-mono italic">฿ {{ (item.price || 0).toLocaleString() }}</td>
                         <td class="p-5 text-center">
@@ -98,24 +106,39 @@ const StockView = {
                     <button @click="showAddModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
                 </div>
                 <div class="p-8 space-y-5">
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block tracking-widest">ชื่อวัตถุดิบ</label>
-                        <input v-model="newItem.name" type="text" placeholder="ระบุชื่อวัตถุดิบ เช่น ไก่, หมู" class="w-full border-b-2 p-2 outline-none focus:border-green-600 font-bold text-lg transition">
-                    </div>
                     <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block tracking-widest">ชื่อวัตถุดิบ</label>
+                            <input v-model="newItem.name" type="text" placeholder="ระบุชื่อ..." class="w-full border-b-2 p-2 outline-none focus:border-green-600 font-bold text-lg transition">
+                        </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">หมวดหมู่</label>
                             <select v-model="newItem.cat" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
-                                <option value="" disabled>เลือกประเภท</option>
+                                <option value="" disabled>เลือกหมวดหมู่</option>
                                 <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                             </select>
                         </div>
-                        <div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">คู่ค้า</label>
+                        <select v-model="newItem.supplier" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
+                            <option value="" disabled>เลือกคู่ค้า</option>
+                            <option v-for="sup in suppliers" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">หน่วยนับ</label>
                             <select v-model="newItem.unit" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
                                 <option value="" disabled>เลือกหน่วย</option>
                                 <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
                             </select>
+                        </div>
+                         <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block font-normal text-left">ราคาทุน (บาท)</label>
+                            <input v-model.number="newItem.price" type="number" class="w-full border-b-2 p-2 outline-none text-sm font-mono">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
@@ -127,10 +150,6 @@ const StockView = {
                             <label class="text-[10px] font-bold text-red-400 uppercase mb-1 block">แจ้งเตือนต่ำกว่า</label>
                             <input v-model.number="newItem.min" type="number" class="w-full border-b-2 p-2 outline-none text-sm font-black text-red-500">
                         </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block font-normal text-left">ราคาทุนต่อหน่วย (บาท)</label>
-                        <input v-model.number="newItem.price" type="number" class="w-full border-b-2 p-2 outline-none text-sm font-mono">
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
@@ -145,6 +164,14 @@ const StockView = {
                 <div class="bg-blue-600 p-6 text-white text-lg font-bold italic uppercase tracking-tighter">✏️ แก้ไขข้อมูลวัตถุดิบ</div>
                 <div class="p-8 space-y-5">
                     <input v-model="editingItem.name" type="text" class="w-full border-b-2 p-2 outline-none focus:border-blue-600 font-bold text-lg">
+                    
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">คู่ค้า</label>
+                        <select v-model="editingItem.supplier" class="w-full border-b-2 p-2 outline-none bg-white text-sm">
+                             <option v-for="sup in suppliers" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-6 text-sm">
                         <select v-model="editingItem.cat" class="w-full border-b-2 p-2 outline-none bg-white">
                             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
@@ -154,8 +181,8 @@ const StockView = {
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-6 text-sm">
-                        <input v-model.number="editingItem.price" type="number" class="w-full border-b-2 p-2 outline-none font-mono">
-                        <input v-model.number="editingItem.min" type="number" class="w-full border-b-2 p-2 outline-none font-bold text-red-500">
+                        <input v-model.number="editingItem.price" type="number" class="w-full border-b-2 p-2 outline-none font-mono" placeholder="ราคา">
+                        <input v-model.number="editingItem.min" type="number" class="w-full border-b-2 p-2 outline-none font-bold text-red-500" placeholder="แจ้งเตือนขั้นต่ำ">
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
@@ -172,7 +199,11 @@ const StockView = {
                 </div>
                 <div class="p-10 text-center">
                     <div class="text-slate-400 mb-2 font-bold text-xs uppercase tracking-tighter">{{ activeItem.name }}</div>
-                    <input v-model.number="actionQty" type="number" class="w-full text-center text-6xl font-black border-b-4 border-slate-100 py-4 outline-none focus:border-slate-300 font-mono" placeholder="0">
+                    <div class="flex items-center justify-center gap-2">
+                        <button @click="actionQty > 0 ? actionQty-- : null" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-lg">-</button>
+                        <input v-model.number="actionQty" type="number" class="w-24 text-center text-5xl font-black border-b-4 border-slate-100 py-2 outline-none focus:border-slate-300 font-mono" placeholder="0">
+                        <button @click="actionQty++" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-lg">+</button>
+                    </div>
                 </div>
                 <div class="p-6 flex gap-3 bg-slate-50">
                     <button @click="activeItem = null" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest">ยกเลิก</button>
@@ -194,14 +225,14 @@ const StockView = {
     methods: {
         addNewItem() {
             if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) return alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
+            
             this.stockData.push({
                 ...this.newItem,
                 id: Date.now(),
-                // บันทึกประวัติเริ่มต้นพร้อมจำนวนที่กรอกมา
                 history: [{ date: new Date().toLocaleString(), type: 'in', qty: this.newItem.qty }]
             });
             this.showAddModal = false;
-            this.newItem = { name: '', cat: '', qty: 0, min: 0, unit: '', price: 0 };
+            this.newItem = { name: '', cat: '', supplier: '', qty: 0, min: 0, unit: '', price: 0 };
         },
         promptNewCategory() {
             const name = prompt("ระบุชื่อหมวดหมู่ใหม่:");
@@ -242,7 +273,6 @@ const StockView = {
                 if (this.activeItem.qty < this.actionQty) return alert("สินค้าในคลังไม่เพียงพอ!");
                 this.activeItem.qty -= this.actionQty;
             }
-            // บันทึกประวัติการเบิกจ่าย
             this.activeItem.history.unshift({ date: new Date().toLocaleString(), type: this.actionType, qty: this.actionQty });
             this.activeItem = null;
         }

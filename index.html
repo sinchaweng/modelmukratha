@@ -82,6 +82,11 @@
             <span class="font-bold text-sm">ระบบรายงาน</span>
         </button>
 
+         <button @click="currentPage = 'manageuser'" :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">จัดการผู้ใช้</span>
+        </button>
+
         <div class="pt-4 mt-4 border-t border-slate-800">
             <button @click="showLogoutModal = true" class="flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-900/20 p-3.5 rounded-2xl transition-all duration-200 group">
                 <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition"></i> 
@@ -129,6 +134,7 @@
     <script src="components/dashboard.js"></script>
     <script src="components/suppliers.js"></script>
     <script src="components/wastage.js"></script>
+    <script src="components/manageuser.js"></script>
 
     <script>
     const { createApp, ref } = Vue;
@@ -191,6 +197,7 @@
     app.component('page-dashboard', DashboardView);
     app.component('page-suppliers', SupplierView);
     app.component('page-wastage', WastageView);
+    app.component('page-manageuser', ManageUserView);
     
     app.mount('#app');
 </script>
