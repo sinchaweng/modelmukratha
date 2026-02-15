@@ -42,31 +42,54 @@
 
         <div v-else class="flex min-h-screen">
             <aside class="w-64 bg-slate-900 text-white p-6 shadow-xl flex flex-col fixed h-full no-print">
-                <div class="text-2xl font-bold text-orange-500 mb-10 flex items-center gap-2">
-                    <i class="fas fa-fire"></i> MuKratha
-                </div>
-                <nav class="space-y-2 flex-1">
-                    <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
-                        <i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปผล
-                    </button>
-                    <button @click="currentPage = 'stock'" :class="currentPage === 'stock' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
-                        <i class="fas fa-boxes"></i> จัดการวัตถุดิบ
-                    </button>
-                    <button @click="currentPage = 'wastage'" :class="currentPage === 'wastage' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
-                        <i class="fas fa-trash-alt"></i> บันทึกของเสีย
-                    </button>
-                    <button @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
-                        <i class="fas fa-truck"></i> ข้อมูลคู่ค้า/Supplier
-                    </button>
-                    <button @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3 rounded-xl transition">
-                        <i class="fas fa-file-invoice"></i> ระบบรายงาน
-                    </button>
-                    <hr class="border-slate-700 my-4">
-                    <button @click="showLogoutModal = true" class="flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-900/30 p-3 rounded-xl transition">
-                        <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
-                    </button>
-                </nav>
-            </aside>
+    <div class="flex flex-col items-center mb-10 border-b border-slate-800 pb-8">
+        <div class="relative group cursor-pointer">
+            <div class="absolute -inset-1 bg-gradient-to-r from-orange-600 to-yellow-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+            
+            <img src="img/logo.jpg" alt="ลงหม้อ Logo" 
+                 class="relative w-28 h-28 rounded-full border-4 border-slate-800 shadow-2xl object-cover bg-white">
+        </div>
+
+        <div class="mt-4 text-center">
+            <h1 class="text-2xl font-black tracking-tighter text-white uppercase">ลงหม้อสุกี้ คลองหก</h1>
+            <p class="text-[10px] font-bold text-orange-500 uppercase tracking-[0.3em] leading-none">SUKI & MOOKATA</p>
+        </div>
+    </div>
+
+    <nav class="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+        <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">แดชบอร์ดสรุปผล</span>
+        </button>
+        
+        <button @click="currentPage = 'stock'" :class="currentPage === 'stock' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-boxes group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">จัดการวัตถุดิบ</span>
+        </button>
+
+        <button @click="currentPage = 'wastage'" :class="currentPage === 'wastage' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-trash-alt group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">บันทึกของเสีย</span>
+        </button>
+
+        <button @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-truck group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">ข้อมูลคู่ค้า/Supplier</span>
+        </button>
+
+        <button @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-file-invoice group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">ระบบรายงาน</span>
+        </button>
+
+        <div class="pt-4 mt-4 border-t border-slate-800">
+            <button @click="showLogoutModal = true" class="flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-900/20 p-3.5 rounded-2xl transition-all duration-200 group">
+                <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition"></i> 
+                <span class="font-bold text-sm">ออกจากระบบ</span>
+            </button>
+        </div>
+    </nav>
+</aside>
 
             <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
                 <component 
