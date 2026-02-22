@@ -1,7 +1,9 @@
 const StockView = {
-    props: ['stockData', 'categories', 'units', 'suppliers'], 
+    // เอา stockData ออกจาก props เพราะเราจะดึงตรงจาก Firebase
+    props: ['categories', 'units', 'suppliers'], 
     data() {
         return {
+            stockData: [], // สร้าง array ว่างไว้รอรับข้อมูลจาก Firebase
             showAddModal: false,
             showEditModal: false,
             activeItem: null,
@@ -21,6 +23,7 @@ const StockView = {
             }
         }
     },
+    // --- (Template HTML เหมือนเดิมทั้งหมด ขอละไว้เพื่อความกระชับ) ---
     template: `
     <section class="w-full text-left">
         <div class="flex justify-between items-end mb-8 no-print border-b border-slate-100 pb-6">
@@ -94,6 +97,9 @@ const StockView = {
                                 </div>
                             </div>
                         </td>
+                    </tr>
+                    <tr v-if="filteredItems.length === 0">
+                        <td colspan="5" class="p-8 text-center text-slate-400">กำลังโหลด หรือ ไม่พบข้อมูลวัตถุดิบ...</td>
                     </tr>
                 </tbody>
             </table>
@@ -222,44 +228,78 @@ const StockView = {
             });
         }
     },
-    methods: {
-        addNewItem() {
-            if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) return alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
-            
-            this.stockData.push({
-                ...this.newItem,
-                id: Date.now(),
-                history: [{ date: new Date().toLocaleString(), type: 'in', qty: this.newItem.qty }]
+    // 1. ดึงข้อมูลทันทีที่ Component โหลด
+    mounted() {
+        // อ้างอิงถึงคอลเลกชัน "inventory" ใน Firestore
+        db.collection("inventory").onSnapshot((querySnapshot) => {
+            const items = [];
+            querySnapshot.forEach((doc) => {
+                items.push({ id: doc.id, ...doc.data() });
             });
-            this.showAddModal = false;
-            this.newItem = { name: '', cat: '', supplier: '', qty: 0, min: 0, unit: '', price: 0 };
+            this.stockData = items;
+        });
+    },
+    methods: {
+        // 2. เพิ่มข้อมูลใหม่
+        addNewItem() {
+            if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
+                return alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
+            }
+            
+            // ใช้ db.collection().add แทน Array.push()
+            db.collection("inventory").add({
+                name: this.newItem.name,
+                cat: this.newItem.cat,
+                supplier: this.newItem.supplier,
+                qty: this.newItem.qty,
+                min: this.newItem.min,
+                unit: this.newItem.unit,
+                price: this.newItem.price,
+                // เก็บประวัติแรกเริ่ม
+                history: [{ 
+                    date: new Date().toISOString(), 
+                    type: 'in', 
+                    qty: this.newItem.qty 
+                }]
+            }).then(() => {
+                this.showAddModal = false;
+                this.newItem = { name: '', cat: '', supplier: '', qty: 0, min: 0, unit: '', price: 0 };
+            }).catch((error) => {
+                console.error("Error adding document: ", error);
+                alert("เกิดข้อผิดพลาดในการบันทึก");
+            });
         },
-        promptNewCategory() {
-            const name = prompt("ระบุชื่อหมวดหมู่ใหม่:");
-            if (name && name.trim()) this.$emit('add-category', name.trim());
-        },
-        promptNewUnit() {
-            const name = prompt("ระบุชื่อหน่วยนับใหม่:");
-            if (name && name.trim()) this.$emit('add-unit', name.trim());
-        },
+        
+        // 3. แก้ไขข้อมูล
         startEdit(item) {
             this.editingItem = JSON.parse(JSON.stringify(item));
             this.showEditModal = true;
         },
         saveEdit() {
-            const index = this.stockData.findIndex(i => i.id === this.editingItem.id);
-            if (index !== -1) {
-                this.stockData[index] = { ...this.editingItem };
+            // สร้าง copy ข้อมูลโดยไม่เอา id ไปอัปเดตทับ
+            const updateData = { ...this.editingItem };
+            delete updateData.id; 
+
+            // อัปเดตไปยังเอกสารที่ตรงกับ id
+            db.collection("inventory").doc(this.editingItem.id).update(updateData)
+            .then(() => {
                 this.showEditModal = false;
                 this.editingItem = null;
-            }
+            })
+            .catch((error) => {
+                console.error("Error updating document: ", error);
+            });
         },
+
+        // 4. ลบข้อมูล
         deleteItem(item) {
             if (confirm(`คุณต้องการลบ "${item.name}"? ประวัติจะหายไปถาวร!`)) {
-                const index = this.stockData.findIndex(i => i.id === item.id);
-                if (index !== -1) this.stockData.splice(index, 1);
+                db.collection("inventory").doc(item.id).delete()
+                .catch((error) => console.error("Error deleting document: ", error));
             }
         },
+
+        // 5. รับเข้า / เบิกจ่าย
         openAction(item, type) {
             this.activeItem = item;
             this.actionType = type;
@@ -267,14 +307,44 @@ const StockView = {
         },
         confirmAction() {
             if (this.actionQty <= 0) return alert("กรุณาระบุจำนวนที่ถูกต้อง!");
+            
+            let newQty = this.activeItem.qty;
             if (this.actionType === 'in') {
-                this.activeItem.qty += this.actionQty;
+                newQty += this.actionQty;
             } else {
-                if (this.activeItem.qty < this.actionQty) return alert("สินค้าในคลังไม่เพียงพอ!");
-                this.activeItem.qty -= this.actionQty;
+                if (newQty < this.actionQty) return alert("สินค้าในคลังไม่เพียงพอ!");
+                newQty -= this.actionQty;
             }
-            this.activeItem.history.unshift({ date: new Date().toLocaleString(), type: this.actionType, qty: this.actionQty });
-            this.activeItem = null;
+
+            // สร้างประวัติใหม่
+            const newHistory = { 
+                date: new Date().toISOString(), 
+                type: this.actionType, 
+                qty: this.actionQty 
+            };
+            
+            // ดึงประวัติเก่ามาเรียงต่อกัน
+            const updatedHistory = [newHistory, ...(this.activeItem.history || [])];
+
+            // อัปเดตเฉพาะค่า qty และ history
+            db.collection("inventory").doc(this.activeItem.id).update({
+                qty: newQty,
+                history: updatedHistory
+            }).then(() => {
+                this.activeItem = null;
+            }).catch(error => {
+                console.error("Error updating stock: ", error);
+                alert("เกิดข้อผิดพลาดในการอัปเดตสต๊อก");
+            });
+        },
+
+        promptNewCategory() {
+            const name = prompt("ระบุชื่อหมวดหมู่ใหม่:");
+            if (name && name.trim()) this.$emit('add-category', name.trim());
+        },
+        promptNewUnit() {
+            const name = prompt("ระบุชื่อหน่วยนับใหม่:");
+            if (name && name.trim()) this.$emit('add-unit', name.trim());
         }
     }
 };
