@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>MuKratha Management System - Project</title>
+    <title>ระบบจัดการสินค้าคงคลัง</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -85,6 +85,11 @@
             <span class="font-bold text-sm">ระบบรายงาน</span>
         </button>
 
+        <button @click="currentPage = 'activitylog'" :class="currentPage === 'activitylog' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-history group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">ประวัติการใช้งาน</span>
+        </button>
+
          <button @click="currentPage = 'manageuser'" :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
             <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
             <span class="font-bold text-sm">จัดการผู้ใช้</span>
@@ -138,10 +143,11 @@
     <script src="components/dashboard.js"></script>
     <script src="components/suppliers.js"></script>
     <script src="components/wastage.js"></script>
+    <script src="components/activitylog.js"></script>
     <script src="components/manageuser.js"></script>
 
     <script>
-    const { createApp, ref } = Vue;
+    const { createApp, ref, onMounted } = Vue;
     const app = createApp({
         setup() {
             const currentPage = ref('login'); // หน้าแรกคือ Login
@@ -159,9 +165,26 @@
                 currentPage.value = 'dashboard'; // เปลี่ยนหน้าไปที่ Dashboard
             };
 
-            const confirmLogout = () => {
-                currentPage.value = 'login';
-                showLogoutModal.value = false;
+            onMounted(() => {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        // ถ้ามี User ล็อกอินค้างอยู่ ให้พาไปหน้า Dashboard เลย
+                        currentPage.value = 'dashboard';
+                    } else {
+                        // ถ้าไม่มี ค่อยให้อยู่หน้า Login
+                        currentPage.value = 'login';
+                    }
+                });
+            });
+
+           const confirmLogout = () => {
+                firebase.auth().signOut().then(() => {
+                    // ออกจากระบบสำเร็จ Firebase จะไปกระตุ้น onAuthStateChanged ด้านบนเอง
+                    // และจะเตะกลับไปหน้า login อัตโนมัติ
+                    showLogoutModal.value = false;
+                }).catch((error) => {
+                    console.error("เกิดข้อผิดพลาดในการออกจากระบบ:", error);
+                });
             };
 
             const addCategory = (newCat) => {
@@ -201,6 +224,7 @@
     app.component('page-dashboard', DashboardView);
     app.component('page-suppliers', SupplierView);
     app.component('page-wastage', WastageView);
+    app.component('page-activitylog', ActivityLogView);
     app.component('page-manageuser', ManageUserView);
     
     app.mount('#app');

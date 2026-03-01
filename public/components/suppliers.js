@@ -1,15 +1,15 @@
 const SupplierView = {
-    // รับข้อมูลคู่ค้าและหมวดหมู่มาจากไฟล์หลัก
-    props: ['suppliers', 'categories'], 
+    props: ['categories'], 
     
     data() {
         return {
+            suppliers: [], 
             showModal: false,
-            editingIndex: null,
+            editingId: null, 
             form: {
                 name: '',
                 contact: '',
-                productCat: '' // เปลี่ยนเป็นค่าว่างเพื่อให้เลือกจากหมวดหมู่ที่มี
+                productCat: '' 
             }
         }
     },
@@ -31,7 +31,7 @@ const SupplierView = {
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="(s, index) in suppliers" :key="s.id" class="bg-white p-6 rounded-[2rem] shadow-sm border hover:shadow-md transition relative group">
+            <div v-for="s in suppliers" :key="s.id" class="bg-white p-6 rounded-[2rem] shadow-sm border hover:shadow-md transition relative group">
                 
                 <div class="flex justify-between items-start mb-4">
                     <div class="bg-orange-100 p-3 rounded-2xl">
@@ -43,7 +43,7 @@ const SupplierView = {
                             {{ s.productCat }}
                         </span>
                         
-                        <button @click="removeSupplier(index)" 
+                        <button @click="removeSupplier(s.id)" 
                                 class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
@@ -60,11 +60,15 @@ const SupplierView = {
                        class="flex-1 py-3 bg-orange-50 text-orange-600 text-[11px] font-black rounded-2xl text-center hover:bg-orange-600 hover:text-white transition shadow-sm uppercase">
                         <i class="fas fa-phone-alt mr-1"></i> โทรติดต่อ
                     </a>
-                    <button @click="openEditModal(s, index)" 
+                    <button @click="openEditModal(s)" 
                             class="px-5 py-3 bg-slate-100 text-slate-600 text-[11px] font-black rounded-2xl hover:bg-slate-200 transition uppercase">
                         <i class="fas fa-edit mr-1"></i> แก้ไข
                     </button>
                 </div>
+            </div>
+            
+            <div v-if="suppliers.length === 0" class="col-span-full text-center py-10 text-slate-400 font-bold">
+                ยังไม่มีข้อมูลคู่ค้า กรุณากดเพิ่มคู่ค้าใหม่
             </div>
         </div>
 
@@ -72,8 +76,8 @@ const SupplierView = {
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
                 <div class="bg-slate-900 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase tracking-tighter">
                     <span>
-                        <i class="fas" :class="editingIndex !== null ? 'fa-edit text-blue-400' : 'fa-truck-loading text-orange-500'"></i> 
-                        {{ editingIndex !== null ? ' แก้ไขข้อมูลคู่ค้า' : ' ลงทะเบียนคู่ค้าใหม่' }}
+                        <i class="fas" :class="editingId !== null ? 'fa-edit text-blue-400' : 'fa-truck-loading text-orange-500'"></i> 
+                        {{ editingId !== null ? ' แก้ไขข้อมูลคู่ค้า' : ' ลงทะเบียนคู่ค้าใหม่' }}
                     </span>
                     <button @click="showModal = false" class="text-slate-400 hover:text-white text-2xl transition hover:rotate-90">&times;</button>
                 </div>
@@ -110,7 +114,7 @@ const SupplierView = {
                     </button>
                     <button @click="saveSupplier" 
                             class="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:bg-orange-700 transition uppercase text-xs tracking-widest transform active:scale-95">
-                        {{ editingIndex !== null ? 'ยืนยันการแก้ไข' : 'บันทึกข้อมูล' }}
+                        {{ editingId !== null ? 'ยืนยันการแก้ไข' : 'บันทึกข้อมูล' }}
                     </button>
                 </div>
             </div>
@@ -118,8 +122,18 @@ const SupplierView = {
     </section>
     `,
 
+    // 7. ดึงข้อมูลทันทีที่เปิดหน้าเว็บ
+    mounted() {
+        db.collection("suppliers").onSnapshot((querySnapshot) => {
+            const items = [];
+            querySnapshot.forEach((doc) => {
+                items.push({ id: doc.id, ...doc.data() });
+            });
+            this.suppliers = items;
+        });
+    },
+
     methods: {
-        // ฟังก์ชันเรียกใช้การเพิ่มหมวดหมู่ใหม่ไปยัง index.html
         promptNewCategory() {
             const name = prompt("ระบุชื่อหมวดหมู่สินค้าใหม่:");
             if (name && name.trim()) {
@@ -128,13 +142,13 @@ const SupplierView = {
         },
 
         openAddModal() {
-            this.editingIndex = null;
+            this.editingId = null;
             this.form = { name: '', contact: '', productCat: '' };
             this.showModal = true;
         },
 
-        openEditModal(supplier, index) {
-            this.editingIndex = index;
+        openEditModal(supplier) {
+            this.editingId = supplier.id; // เก็บ ID ไว้ใช้อัปเดต
             this.form = { ...supplier };
             this.showModal = true;
         },
@@ -145,22 +159,38 @@ const SupplierView = {
                 return;
             }
 
-            if (this.editingIndex !== null) {
-                this.suppliers[this.editingIndex] = { ...this.form };
-            } else {
-                this.suppliers.push({
-                    id: Date.now(),
-                    ...this.form
-                });
-            }
+            if (this.editingId !== null) {
+                // อัปเดตข้อมูลเก่า
+                const updateData = { ...this.form };
+                delete updateData.id; // ไม่เอา id ไปบันทึกทับใน field
 
-            this.showModal = false;
-            this.form = { name: '', contact: '', productCat: '' };
+                db.collection("suppliers").doc(this.editingId).update(updateData)
+                .then(() => {
+                    this.showModal = false;
+                    this.editingId = null;
+                })
+                .catch((error) => console.error("Error updating supplier: ", error));
+
+            } else {
+                // เพิ่มข้อมูลใหม่
+                db.collection("suppliers").add({
+                    name: this.form.name,
+                    contact: this.form.contact,
+                    productCat: this.form.productCat,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    this.showModal = false;
+                    this.form = { name: '', contact: '', productCat: '' };
+                })
+                .catch((error) => console.error("Error adding supplier: ", error));
+            }
         },
 
-        removeSupplier(index) {
+        removeSupplier(id) {
             if (confirm("คุณต้องการลบข้อมูลคู่ค้านี้ใช่หรือไม่? ประวัติการติดต่อจะหายไปทันที")) {
-                this.suppliers.splice(index, 1);
+                db.collection("suppliers").doc(id).delete()
+                .catch((error) => console.error("Error deleting supplier: ", error));
             }
         }
     }
