@@ -43,7 +43,7 @@ const WastageView = {
                         <td class="p-5"><span class="text-slate-600 text-sm"><i class="fas fa-info-circle text-red-400 mr-1"></i>{{ log.reason }}</span></td>
                         <td class="p-5 text-right font-black text-red-600">฿ {{ (log.cost || 0).toLocaleString() }}</td>
                     </tr>
-                    <tr v-if="wastageLogs.length === 0">
+                    <tr v-if="formattedLogs.length === 0">
                         <td colspan="5" class="p-10 text-center text-slate-400 font-bold">ยังไม่มีประวัติการบันทึกของเสีย</td>
                     </tr>
                 </tbody>
@@ -51,47 +51,47 @@ const WastageView = {
         </div>
 
         <div v-if="showConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
-        <div class="bg-red-600 p-6 text-white text-center">
-            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fas fa-exclamation-triangle text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการตัดสต็อกเสีย</h3>
-        </div>
-        
-        <div class="p-8 text-center" v-if="pendingData">
-            <p class="text-slate-500 text-sm mb-1">วัตถุดิบที่เสียหาย:</p>
-            <div class="text-2xl font-bold text-slate-800 mb-2">{{ pendingData.itemName }}</div>
-            <div class="bg-red-50 text-red-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
-                ⚠️ จำนวน {{ pendingData.qty }} {{ pendingData.unit }} มูลค่า ฿{{ pendingData.cost.toLocaleString() }}
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
+                <div class="bg-red-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการตัดสต็อกเสีย</h3>
+                </div>
+                
+                <div class="p-8 text-center" v-if="pendingData">
+                    <p class="text-slate-500 text-sm mb-1">วัตถุดิบที่เสียหาย:</p>
+                    <div class="text-2xl font-bold text-slate-800 mb-2">{{ pendingData.itemName }}</div>
+                    <div class="bg-red-50 text-red-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
+                        ⚠️ จำนวน {{ pendingData.qty }} {{ pendingData.unit }} มูลค่า ฿{{ pendingData.cost.toLocaleString() }}
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-50 flex gap-3 border-t">
+                    <button @click="showConfirmModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
+                    <button @click="executeSave" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยัน</button>
+                </div>
             </div>
         </div>
 
-        <div class="p-6 bg-slate-50 flex gap-3 border-t">
-            <button @click="showConfirmModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
-            <button @click="executeSave" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยัน</button>
-        </div>
-    </div>
-</div>
-
-<div v-if="showErrorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
-        <div class="bg-amber-500 p-6 text-white text-center">
-            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fas fa-exclamation-circle text-2xl"></i>
+        <div v-if="showErrorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
+                <div class="bg-amber-500 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-exclamation-circle text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
+                </div>
+                <div class="p-6 text-center text-slate-600 font-medium">
+                    {{ errorMessage }}
+                </div>
+                <div class="p-4 bg-slate-50">
+                    <button @click="showErrorModal = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
+                </div>
             </div>
-            <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
         </div>
-        <div class="p-6 text-center text-slate-600 font-medium">
-            {{ errorMessage }}
-        </div>
-        <div class="p-4 bg-slate-50">
-            <button @click="showErrorModal = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
-        </div>
-    </div>
-</div>
     </section>
-    `,
+  `,
   data() {
     return {
       inventoryData: [],
@@ -140,26 +140,33 @@ const WastageView = {
       });
   },
   methods: {
-    // จังหวะที่ 1: ตรวจสอบและแสดง Modal
+    logActivity(action, details) {
+      const userEmail = firebase.auth().currentUser?.email || 'System';
+      db.collection("activity_logs").add({
+          userEmail: userEmail,
+          module: 'ของเสีย',
+          action: action,
+          details: details,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(err => console.error("Log Error:", err));
+    },
+
     saveWastage() {
-    // ตรวจสอบข้อมูล: ถ้าไม่เลือกไอเทม หรือ ไม่ระบุจำนวน หรือจำนวน <= 0
-    if (!this.form.itemId || !this.form.qty || this.form.qty <= 0) {
+      if (!this.form.itemId || !this.form.qty || this.form.qty <= 0) {
         this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
         this.showErrorModal = true;
         return;
-    }
+      }
 
-    const selectedItem = this.inventoryData.find(i => i.id === this.form.itemId);
-    if (!selectedItem) return;
+      const selectedItem = this.inventoryData.find(i => i.id === this.form.itemId);
+      if (!selectedItem) return;
 
-    // ส่วนเช็คสต็อกไม่พอ (ถ้าอยากให้หน้าตาเหมือนกันเป๊ะ แนะนำให้ใช้คำว่า "กรุณาระบุข้อมูลให้ครบถ้วน" หรือคงคำเดิมไว้ก็ได้ครับ)
-    if (selectedItem.qty < this.form.qty) {
-        this.errorMessage = "สต็อกมีไม่เพียงพอ"; 
+      if (selectedItem.qty < this.form.qty) {
+        this.errorMessage = "สต๊อกมีไม่เพียงพอ"; 
         this.showErrorModal = true;
         return;
-    }
+      }
 
-      // ถ้าผ่านเงื่อนไขทั้งหมด ให้ไปเปิด Confirm Modal
       this.pendingData = {
         id: selectedItem.id,
         itemName: selectedItem.name,
@@ -173,7 +180,6 @@ const WastageView = {
       this.showConfirmModal = true;
     },
 
-    // จังหวะที่ 2: กดตกลงใน Modal แล้วบันทึกจริง
     executeSave() {
       const data = this.pendingData;
       const isoDate = new Date().toISOString();
@@ -184,7 +190,7 @@ const WastageView = {
         unit: data.unit,
         reason: data.reason,
         cost: data.cost,
-        date: isoDate,
+        date: isoDate
       };
 
       const newHistory = {
@@ -195,7 +201,6 @@ const WastageView = {
       };
       const updatedHistory = [newHistory, ...data.history];
 
-      // ปิด Modal ทันทีเพื่อให้ดูรวดเร็ว
       this.showConfirmModal = false;
 
       db.collection("wastage")
@@ -210,15 +215,16 @@ const WastageView = {
             });
         })
         .then(() => {
+          // บันทึก Log การกระทำลงในประวัติผู้ใช้งาน
+          this.logActivity('CREATE', `บันทึกของเสีย: ${data.itemName} จำนวน ${data.qty} ${data.unit}`);
+          
           this.form = { itemId: "", qty: "", reason: "" };
           this.pendingData = null;
-          // อาจเปลี่ยนจาก alert เป็น Toast เล็กๆ ในอนาคตจะสวยมากครับ
-          console.log("บันทึกของเสียสำเร็จ");
         })
         .catch((error) => {
           console.error("Error:", error);
           alert("เกิดข้อผิดพลาด: " + error.message);
         });
-    },
+    }
   },
 };

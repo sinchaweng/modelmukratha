@@ -76,10 +76,10 @@ const ActivityLogView = {
         }
     },
     mounted() {
-        // ดึงข้อมูลประวัติย้อนหลัง (จำกัดแค่ 200 รายการล่าสุดเพื่อไม่ให้ดึงข้อมูลหนักเกินไป)
+        // ดึงข้อมูลประวัติย้อนหลัง (จำกัดแค่ 100 รายการล่าสุด)
         db.collection("activity_logs")
           .orderBy("timestamp", "desc")
-          .limit(200)
+          .limit(100)
           .onSnapshot((snapshot) => {
             const tempLogs = [];
             snapshot.forEach((doc) => {
@@ -91,11 +91,10 @@ const ActivityLogView = {
     methods: {
         formatDateTime(timestamp) {
             if (!timestamp) return '-';
-            // รองรับทั้ง Firestore Timestamp และ ISO String
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
             return date.toLocaleString('th-TH', { 
                 year: 'numeric', month: 'short', day: 'numeric', 
-                hour: '2-digit', minute:'2-digit', second:'2-digit'
+                hour: '2-digit', minute:'2-digit' 
             });
         },
         getActionColor(action) {
@@ -104,6 +103,8 @@ const ActivityLogView = {
                 case 'UPDATE': return 'bg-blue-100 text-blue-700';
                 case 'DELETE': return 'bg-red-100 text-red-700';
                 case 'LOGIN': return 'bg-purple-100 text-purple-700';
+                case 'LOGOUT': return 'bg-slate-200 text-slate-600'; 
+                case 'ERROR': return 'bg-red-100 text-red-700'; 
                 default: return 'bg-slate-100 text-slate-700';
             }
         },
@@ -113,6 +114,8 @@ const ActivityLogView = {
                 case 'UPDATE': return 'fas fa-edit';
                 case 'DELETE': return 'fas fa-trash-alt';
                 case 'LOGIN': return 'fas fa-sign-in-alt';
+                case 'LOGOUT': return 'fas fa-sign-out-alt'; 
+                case 'ERROR': return 'fas fa-exclamation-circle'; 
                 default: return 'fas fa-info-circle';
             }
         }

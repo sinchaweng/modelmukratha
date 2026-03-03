@@ -1,10 +1,11 @@
 const ReportView = {
-    props: ['stockData', 'wastageLogs'],
     data() {
         return {
             activeTab: 'stock',
             startDate: '',
-            endDate: new Date().toISOString().split('T')[0]
+            endDate: new Date().toISOString().split('T')[0],
+            stockData: [],    
+            wastageLogs: []   
         }
     },
     template: `
@@ -23,7 +24,7 @@ const ReportView = {
             <button @click="activeTab = 'stock'" 
                 :class="activeTab === 'stock' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'"
                 class="px-6 py-3 rounded-2xl font-bold text-sm transition-all border flex items-center gap-2 whitespace-nowrap">
-                <i class="fas fa-boxes"></i> 1. รายงานสต็อกคงเหลือปัจจุบัน
+                <i class="fas fa-boxes"></i> 1. รายงานสต๊อกคงเหลือปัจจุบัน
             </button>
             <button @click="activeTab = 'purchase'" 
                 :class="activeTab === 'purchase' ? 'bg-orange-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'"
@@ -64,18 +65,21 @@ const ReportView = {
                             </tr>
                         </thead>
                         <tbody class="text-base font-medium">
-                            <tr v-for="item in stockData" :key="item.id" class="border-b border-slate-50 hover:bg-slate-50 transition">
+                            <tr v-for="item in activeStockData" :key="item.id" class="border-b border-slate-50 hover:bg-slate-50 transition">
                                 <td class="py-5 px-4">
                                     <div class="font-black text-slate-800">{{ item.name }}</div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ item.cat }}</div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ item.cat || item.type }}</div>
                                 </td>
-                                <td class="py-5 px-4 text-center font-mono text-slate-500">฿{{ (item.price || 0).toLocaleString() }}</td>
+                                <td class="py-5 px-4 text-center font-mono text-slate-500">฿{{ (Number(item.price) || 0).toLocaleString() }}</td>
                                 <td class="py-5 px-4 text-right">
-                                    <span :class="item.qty <= item.min ? 'text-red-600 font-black' : 'text-slate-700 font-bold'" class="text-xl font-mono">
+                                    <span :class="Number(item.qty) <= Number(item.min) ? 'text-red-600 font-black' : 'text-slate-700 font-bold'" class="text-xl font-mono">
                                         {{ item.qty }}
                                     </span>
                                     <span class="text-slate-400 text-[10px] font-bold uppercase ml-1">{{ item.unit }}</span>
                                 </td>
+                            </tr>
+                            <tr v-if="activeStockData.length === 0">
+                                <td colspan="3" class="py-10 text-center text-slate-400 font-bold">กำลังโหลดข้อมูล...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -101,7 +105,7 @@ const ReportView = {
                                     <div class="text-[10px] text-orange-500 font-bold">จุดแจ้งเตือน: {{ item.min }} {{ item.unit }}</div>
                                 </td>
                                 <td class="py-6 px-4 text-right">
-                                    <span class="text-red-600 font-black text-3xl font-mono">+ {{ item.min - item.qty + 1 }}</span>
+                                    <span class="text-red-600 font-black text-3xl font-mono">+ {{ (Number(item.min) - Number(item.qty)) + 1 }}</span>
                                     <span class="text-slate-400 text-xs font-bold uppercase ml-2">{{ item.unit }}</span>
                                 </td>
                             </tr>
@@ -109,7 +113,7 @@ const ReportView = {
                     </table>
                 </div>
                 <div v-else class="py-24 text-center text-slate-200 italic font-bold text-xl">
-                    สต็อกปกติทุกรายการ ไม่ต้องซื้อเพิ่ม
+                    สต๊อกปกติทุกรายการ ไม่ต้องซื้อเพิ่ม
                 </div>
             </div>
 
@@ -138,7 +142,7 @@ const ReportView = {
                         </thead>
                         <tbody>
                             <tr v-for="(log, idx) in filteredHistory" :key="idx" class="border-b border-slate-50 hover:bg-slate-50 transition">
-                                <td class="py-5 px-2 text-slate-400 text-[11px] font-mono text-center">{{ log.date }}</td>
+                                <td class="py-5 px-2 text-slate-400 text-[11px] font-mono text-center">{{ log.displayDate }}</td>
                                 <td class="py-5 px-2 font-black text-slate-800 text-center">{{ log.item }}</td>
                                 <td class="py-5 px-2 text-center">
                                     <span :class="log.type === 'in' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-orange-600 bg-orange-50 border-orange-100'" 
@@ -151,7 +155,7 @@ const ReportView = {
                                 </td>
                             </tr>
                             <tr v-if="filteredHistory.length === 0">
-                                <td colspan="4" class="py-24 text-center text-slate-200 italic font-bold">ไม่พบประวัติในช่วงวันที่ระบุ</td>
+                                <td colspan="4" class="py-24 text-center text-slate-300 italic font-bold">ไม่พบประวัติในช่วงวันที่ระบุ</td>
                             </tr>
                         </tbody>
                     </table>
@@ -173,9 +177,28 @@ const ReportView = {
         </component>
     </section>
     `,
+    mounted() {
+        db.collection("inventory").onSnapshot(snapshot => {
+            const items = [];
+            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            this.stockData = items;
+        });
+
+        db.collection("wastage").onSnapshot(snapshot => {
+            const logs = [];
+            snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
+            this.wastageLogs = logs;
+        });
+    },
     computed: {
+        // 1. [เพิ่มใหม่] กรองข้อมูลเฉพาะวัตถุดิบที่ไม่ได้ถูกลบ
+        activeStockData() {
+            return this.stockData.filter(item => item.active !== false);
+        },
+
         totalUsageCost() {
             let total = 0;
+            // ใช้ stockData ตัวเต็ม เพื่อให้ประวัติต้นทุนเก่าๆ ยังคงถูกคำนวณ
             this.stockData.forEach(item => {
                 const totalOut = (item.history || []).filter(h => h.type === 'out').reduce((sum, h) => sum + Number(h.qty), 0);
                 total += (totalOut * (Number(item.price) || 0));
@@ -186,17 +209,29 @@ const ReportView = {
             return (this.wastageLogs || []).reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
         },
         lowStock() {
-            return this.stockData.filter(i => i.qty <= i.min);
+            // [แก้ไข] ดึงเฉพาะสินค้าที่ Active เพื่อนำมาสั่งซื้อ
+            return this.activeStockData.filter(i => Number(i.qty) <= Number(i.min));
         },
         filteredHistory() {
             let logs = [];
+            // ใช้ stockData ตัวเต็ม เพื่อโชว์ประวัติการรับเข้าเบิกออกของสินค้าที่ลบไปแล้วด้วย
             this.stockData.forEach(i => { 
-                (i.history || []).forEach(h => logs.push({ ...h, item: i.name })); 
+                (i.history || []).forEach(h => {
+                    const d = new Date(h.date);
+                    const formattedDate = !isNaN(d) ? d.toLocaleString('th-TH', { 
+                        year: 'numeric', month: 'short', day: 'numeric', 
+                        hour: '2-digit', minute:'2-digit' 
+                    }) : h.date;
+
+                    logs.push({ ...h, item: i.name, displayDate: formattedDate });
+                }); 
             });
+            
             let result = logs.sort((a,b) => new Date(b.date) - new Date(a.date));
 
             if (this.startDate) {
                 result = result.filter(log => {
+                    if (!log.date) return false;
                     const logDate = new Date(log.date).toISOString().split('T')[0];
                     return logDate >= this.startDate && logDate <= this.endDate;
                 });

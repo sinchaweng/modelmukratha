@@ -24,7 +24,7 @@ const ManageUserView = {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <tr v-for="user in users" :key="user.id" class="hover:bg-slate-50 transition duration-150">
+                        <tr v-for="user in activeUsers" :key="user.id" class="hover:bg-slate-50 transition duration-150">
                             <td class="p-5 font-medium text-slate-700">{{ user.email }}</td>
                             <td class="p-5 text-slate-600">{{ user.name || '-' }}</td>
                             <td class="p-5">
@@ -42,7 +42,7 @@ const ManageUserView = {
                                 <button @click="deleteUser(user)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-trash text-xs"></i></button>
                             </td>
                         </tr>
-                        <tr v-if="users.length === 0">
+                        <tr v-if="activeUsers.length === 0">
                             <td colspan="5" class="p-10 text-center text-slate-400 font-bold">กำลังโหลดข้อมูล หรือ ไม่พบผู้ใช้งาน...</td>
                         </tr>
                     </tbody>
@@ -108,22 +108,22 @@ const ManageUserView = {
     </div>
 
     <div v-if="showErrorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[90]">
-    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
-        <div class="bg-amber-500 p-6 text-white text-center">
-            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fas fa-exclamation-circle text-2xl"></i>
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
+            <div class="bg-amber-500 p-6 text-white text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-exclamation-circle text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
             </div>
-            <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
-        </div>
-        <div class="p-6 text-center text-slate-600 font-medium">
-            {{ errorMessage }}
-        </div>
-        <div class="p-4 bg-slate-50">
-            <button @click="showErrorModal = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
+            <div class="p-6 text-center text-slate-600 font-medium">
+                {{ errorMessage }}
+            </div>
+            <div class="p-4 bg-slate-50">
+                <button @click="showErrorModal = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
+            </div>
         </div>
     </div>
-</div>
-    `,
+  `,
   data() {
     return {
       users: [],
@@ -149,8 +149,13 @@ const ManageUserView = {
       },
     };
   },
+  // 1. กรองข้อมูลเฉพาะผู้ใช้ที่ไม่ได้ถูก Delete
+  computed: {
+      activeUsers() {
+          return this.users.filter(user => user.deleted !== true);
+      }
+  },
   mounted() {
-    // ดึงข้อมูลผู้ใช้จาก Firestore มาโชว์แบบ Real-time
     db.collection("users").onSnapshot((snapshot) => {
       const tempUsers = [];
       snapshot.forEach((doc) => {
@@ -160,6 +165,18 @@ const ManageUserView = {
     });
   },
   methods: {
+    // ฟังก์ชันสำหรับบันทึก Log กิจกรรม
+    logActivity(action, details) {
+        const userEmail = firebase.auth().currentUser?.email || 'System';
+        db.collection("activity_logs").add({
+            userEmail: userEmail,
+            module: 'ผู้ใช้งาน',
+            action: action,
+            details: details,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.error("Log Error:", err));
+    },
+
     openModal(user = null) {
       this.showModal = true;
       if (user) {
@@ -181,72 +198,67 @@ const ManageUserView = {
       this.showModal = false;
     },
     async saveUser() {
-    if (!this.form.email || !this.form.name) {
-        this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน"; 
-        this.showErrorModal = true; // เปิด Modal
-        return;
-    }
-
-    if (!this.isEditing) {
-        if (!this.form.password) {
-            this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
+        if (!this.form.email || !this.form.name) {
+            this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน"; 
             this.showErrorModal = true;
             return;
         }
-        if (this.form.password.length < 6) {
-            this.errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
-            this.showErrorModal = true;
-            return;
+
+        if (!this.isEditing) {
+            if (!this.form.password) {
+                this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
+                this.showErrorModal = true;
+                return;
+            }
+            if (this.form.password.length < 6) {
+                this.errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+                this.showErrorModal = true;
+                return;
+            }
         }
-    }
 
-    this.isLoading = true;
+        this.isLoading = true;
 
-      try {
-        if (this.isEditing) {
-          // --- กรณีแก้ไข: อัปเดตแค่ข้อมูลใน Database ---
-          await db.collection("users").doc(this.form.id).update({
-            name: this.form.name,
-            role: this.form.role,
-          });
-          this.closeModal();
-        } else {
-          // --- กรณีเพิ่มใหม่: ต้องทำ 2 ขั้นตอน (Firebase จะไม่รองรับการสร้าง Auth แบบไม่เตะคนเก่าออกในฝั่ง Client
-          // ดังนั้นเราจะบันทึกข้อมูลลง DB เฉยๆ เป็นการจำลองระบบไว้ก่อนครับ) ---
+        try {
+            if (this.isEditing) {
+            await db.collection("users").doc(this.form.id).update({
+                name: this.form.name,
+                role: this.form.role,
+            });
+            // บันทึก Log การแก้ไข
+            this.logActivity('UPDATE', `แก้ไขข้อมูลผู้ใช้: ${this.form.email}`);
+            
+            this.closeModal();
+            } else {
+            await db.collection("users").add({
+                email: this.form.email,
+                name: this.form.name,
+                role: this.form.role,
+                active: true,
+                deleted: false, // เพิ่ม field deleted เป็น false ตอนสร้าง
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
 
-          // 1. เพิ่มข้อมูลลง Collection Users (สำหรับแสดงผล)
-          await db.collection("users").add({
-            email: this.form.email,
-            name: this.form.name,
-            role: this.form.role,
-            active: true,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          });
+            try {
+                await firebase.auth().createUserWithEmailAndPassword(this.form.email, this.form.password);
+                
+                // บันทึก Log สร้างใหม่
+                this.logActivity('CREATE', `เพิ่มผู้ใช้งานใหม่: ${this.form.email} (${this.form.role})`);
+                
+                alert("สร้างบัญชีผู้ใช้สำเร็จ! (ระบบอาจพากลับไปหน้า Login ใหม่)");
+            } catch (authErr) {
+                console.error("Auth Error:", authErr);
+                alert("บันทึกข้อมูลแล้ว แต่ไม่สามารถสร้างระบบล็อกอินได้ (อีเมลอาจซ้ำ)");
+            }
 
-          // 2. สร้าง Auth User (คำเตือน: โค้ดส่วนนี้อาจทำให้แอดมินหลุดออกจากระบบ เพราะ Firebase ถือเป็นการล็อกอินใหม่)
-          try {
-            await firebase
-              .auth()
-              .createUserWithEmailAndPassword(
-                this.form.email,
-                this.form.password,
-              );
-            alert("สร้างบัญชีผู้ใช้สำเร็จ! (ระบบอาจพากลับไปหน้า Login ใหม่)");
-          } catch (authErr) {
-            console.error("Auth Error:", authErr);
-            alert(
-              "บันทึกข้อมูลแล้ว แต่ไม่สามารถสร้างระบบล็อกอินได้ (อีเมลอาจซ้ำ)",
-            );
-          }
-
-          this.closeModal();
+            this.closeModal();
+            }
+        } catch (error) {
+            console.error("Error saving user:", error);
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        } finally {
+            this.isLoading = false;
         }
-      } catch (error) {
-        console.error("Error saving user:", error);
-        alert("เกิดข้อผิดพลาด: " + error.message);
-      } finally {
-        this.isLoading = false;
-      }
     },
 
     toggleUserStatus(user) {
@@ -259,21 +271,33 @@ const ManageUserView = {
           await db.collection("users").doc(user.id).update({
             active: !user.active,
           });
+          // บันทึก Log เปลี่ยนสถานะ
+          const statusText = !user.active ? "เปิดใช้งาน" : "ระงับการใช้งาน";
+          this.logActivity('UPDATE', `${statusText} บัญชี: ${user.email}`);
+
           this.confirmationModal.show = false;
         },
       };
     },
 
+    // 2. เปลี่ยนจาก delete เป็น update(deleted: true)
     deleteUser(user) {
       this.confirmationModal = {
         show: true,
         type: "danger",
-        title: "ยืนยันการลบข้อมูล?",
-        message: `คุณแน่ใจหรือไม่ที่จะลบผู้ใช้ ${user.email} ถาวร? ข้อมูลจะหายไปจากระบบทันที`,
+        title: "ยืนยันการนำออก?",
+        message: `คุณต้องการนำผู้ใช้ ${user.email} ออกจากระบบใช่หรือไม่?`,
         confirmAction: async () => {
-          await db.collection("users").doc(user.id).delete();
+          // ใช้การ update deleted แทนการลบข้อมูลจริง
+          await db.collection("users").doc(user.id).update({
+              deleted: true,
+              active: false // ระงับการใช้งานไปด้วยเลย
+          });
+          
+          // บันทึก Log การนำออก
+          this.logActivity('DELETE', `นำบัญชีผู้ใช้งานออก (ซ่อน): ${user.email}`);
+
           this.confirmationModal.show = false;
-          // หมายเหตุ: การลบใน Collection จะไม่ลบบัญชีใน Firebase Auth (ต้องไปลบมือใน Console)
         },
       };
     },

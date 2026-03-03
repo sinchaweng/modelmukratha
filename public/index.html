@@ -59,8 +59,8 @@
         </div>
     </div>
 
-    <nav class="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
-        <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+    <nav class="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <button v-if="userRole === 'Admin'" @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
             <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
             <span class="font-bold text-sm">แดชบอร์ดสรุปผล</span>
         </button>
@@ -80,23 +80,28 @@
             <span class="font-bold text-sm">ข้อมูลคู่ค้า/Supplier</span>
         </button>
 
-        <button @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+        <button v-if="userRole === 'Admin'" @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
             <i class="fas fa-file-invoice group-hover:scale-110 transition"></i> 
             <span class="font-bold text-sm">ระบบรายงาน</span>
         </button>
 
-        <button @click="currentPage = 'activitylog'" :class="currentPage === 'activitylog' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+         <button v-if="userRole === 'Admin'" @click="currentPage = 'manageuser'" :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+            <i class="fas fa-users-cog group-hover:scale-110 transition"></i> 
+            <span class="font-bold text-sm">จัดการผู้ใช้งาน</span>
+        </button>
+
+        <button v-if="userRole === 'Admin'" @click="currentPage = 'activitylog'" :class="currentPage === 'activitylog' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
             <i class="fas fa-history group-hover:scale-110 transition"></i> 
             <span class="font-bold text-sm">ประวัติการใช้งาน</span>
         </button>
 
-         <button @click="currentPage = 'manageuser'" :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">จัดการผู้ใช้</span>
-        </button>
-
         <div class="pt-4 mt-4 border-t border-slate-800">
-            <button @click="showLogoutModal = true" class="flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-900/20 p-3.5 rounded-2xl transition-all duration-200 group">
+            <div class="px-4 mb-3 text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">เข้าสู่ระบบโดย</p>
+                <p class="text-xs text-yellow-200 font-bold truncate">{{ currentUserEmail }}</p>
+                <span class="inline-block mt-1 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[9px] uppercase">{{ userRole }}</span>
+            </div>
+            <button @click="showLogoutModal = true" class="flex items-center justify-center gap-2 w-full text-red-400 hover:bg-red-900/20 p-3 rounded-xl transition-all duration-200 group border border-red-900/30">
                 <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition"></i> 
                 <span class="font-bold text-sm">ออกจากระบบ</span>
             </button>
@@ -105,16 +110,12 @@
 </aside>
 
             <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
-                <component 
-                    :is="'page-' + currentPage" 
-        :stock-data="inventory" 
-        :suppliers="suppliers"
-        :wastage-logs="wastageLogs" 
-        :categories="categories"
-        :units="units" 
-        @update-stock="saveData"
-        @add-category="addCategory"
-        @add-unit="addUnit">
+                <component :is="'page-' + currentPage" 
+           :categories="categories" 
+           :units="units"
+           @login-success="handleLogin" 
+           @add-category="addCategory" 
+           @add-unit="addUnit">
                 </component>
             </main>
         </div>
@@ -134,6 +135,23 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="globalAlert.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
+                <div class="bg-red-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                        <i class="fas fa-ban text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-black uppercase italic tracking-tighter">{{ globalAlert.title }}</h3>
+                </div>
+                <div class="p-6 text-center text-slate-600 font-medium">
+                    {{ globalAlert.message }}
+                </div>
+                <div class="p-4 bg-slate-50 border-t border-slate-100">
+                    <button @click="globalAlert.show = false" class="w-full py-3 bg-slate-800 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition">รับทราบ</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="config.js"></script>
@@ -148,42 +166,124 @@
 
     <script>
     const { createApp, ref, onMounted } = Vue;
+    
     const app = createApp({
         setup() {
-            const currentPage = ref('login'); // หน้าแรกคือ Login
+            // --- 1. ตัวแปรสถานะหน้าจอ ---
+            const currentPage = ref('login'); 
             const showLogoutModal = ref(false);
+            const globalAlert = ref({ show: false, title: '', message: '' });
+            // --- 2. ตัวแปรข้อมูลผู้ใช้และสิทธิ์ ---
+            const currentUserEmail = ref('');
+            const userRole = ref(''); 
 
-            // ข้อมูลเริ่มต้น
+            // --- 3. ข้อมูลเริ่มต้น ---
             const categories = ref(['เนื้อสัตว์', 'ผักสด', 'เครื่องปรุง', 'เครื่องดื่ม']);
             const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค']);
             const inventory = ref([]);
             const suppliers = ref([]);
             const wastageLogs = ref([]);
 
-            // --- [จุดที่ต้องเพิ่ม] ฟังก์ชันสำหรับ Login ---
-            const handleLogin = () => {
-                currentPage.value = 'dashboard'; // เปลี่ยนหน้าไปที่ Dashboard
-            };
-
+            // --- 4. ตรวจสอบสถานะล็อกอินและสิทธิ์ (ดึงข้อมูล Real-time) ---
             onMounted(() => {
-                firebase.auth().onAuthStateChanged((user) => {
-                    if (user) {
-                        // ถ้ามี User ล็อกอินค้างอยู่ ให้พาไปหน้า Dashboard เลย
-                        currentPage.value = 'dashboard';
-                    } else {
-                        // ถ้าไม่มี ค่อยให้อยู่หน้า Login
-                        currentPage.value = 'login';
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            currentUserEmail.value = user.email;
+            
+            db.collection("users").where("email", "==", user.email).get()
+            .then((querySnapshot) => {
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    userRole.value = userData.role || 'Staff'; 
+                    
+                    // 1. ถ้าบัญชีโดนระงับ
+                    if(userData.active === false) {
+                        globalAlert.value = {
+                            show: true,
+                            title: 'ระงับการเข้าถึง',
+                            message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
+                        };
+                        
+                        db.collection("activity_logs").add({
+                            userEmail: user.email,
+                            module: 'ระบบล็อกอิน',
+                            action: 'ERROR',
+                            details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        firebase.auth().signOut(); 
+                        return; 
                     }
-                });
+
+                    // 2. ถ้าผ่านการเช็ค (ไม่โดนแบน) ให้พาไปหน้าหลัก
+                    currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
+                    
+                    // [เพิ่มใหม่] ค่อยมาส่ง Log "เข้าสู่ระบบสำเร็จ" ตรงนี้แทน!!
+                    // เช็คก่อนว่าเพิ่งมาจากหน้า login จริงๆ ค่อยส่ง log (ป้องกันการ refresh หน้าแล้วส่ง log รัวๆ)
+                    if (!sessionStorage.getItem('isLogged')) {
+                        db.collection("activity_logs").add({
+                            userEmail: user.email,
+                            module: 'ระบบล็อกอิน',
+                            action: 'LOGIN',
+                            details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        sessionStorage.setItem('isLogged', 'true'); // ทำสัญลักษณ์ไว้ว่า session นี้ล็อกอินมาแล้ว
+                    }
+
+                } else {
+                    // กรณีแปลกๆ ที่มีใน Auth แต่ไม่มีในฐานข้อมูล Users
+                    userRole.value = 'Staff';
+                    currentPage.value = 'stock';
+                    
+                    if (!sessionStorage.getItem('isLogged')) {
+                         db.collection("activity_logs").add({
+                            userEmail: user.email,
+                            module: 'ระบบล็อกอิน',
+                            action: 'LOGIN',
+                            details: 'เข้าสู่ระบบสำเร็จ (Staff ทั่วไป)',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        sessionStorage.setItem('isLogged', 'true');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching user role:", err);
+                currentPage.value = 'stock';
             });
 
-           const confirmLogout = () => {
-                firebase.auth().signOut().then(() => {
-                    // ออกจากระบบสำเร็จ Firebase จะไปกระตุ้น onAuthStateChanged ด้านบนเอง
-                    // และจะเตะกลับไปหน้า login อัตโนมัติ
+        } else {
+            // ถ้าไม่มีใครล็อกอิน (หรือเพิ่งกด Logout มา)
+            currentPage.value = 'login';
+            userRole.value = '';
+            currentUserEmail.value = '';
+            sessionStorage.removeItem('isLogged'); // ล้างสัญลักษณ์ตอนกด Logout
+        }
+    });
+});
+
+            // --- 5. ฟังก์ชันการทำงานต่างๆ ---
+            const handleLogin = () => { 
+                // ปล่อยให้ onAuthStateChanged เป็นตัวจัดการเปลี่ยนหน้า
+            };
+
+            const confirmLogout = () => {
+                const emailToLog = currentUserEmail.value || 'Unknown';
+
+                db.collection("activity_logs").add({
+                    userEmail: emailToLog,
+                    module: 'ระบบล็อกอิน',
+                    action: 'LOGOUT', 
+                    details: 'ออกจากระบบอย่างปลอดภัย',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    return firebase.auth().signOut();
+                }).then(() => {
                     showLogoutModal.value = false;
                 }).catch((error) => {
-                    console.error("เกิดข้อผิดพลาดในการออกจากระบบ:", error);
+                    console.error("Logout Error:", error);
                 });
             };
 
@@ -199,16 +299,19 @@
                 inventory.value = newData;
             };
 
-            // ส่งค่าและฟังก์ชันทั้งหมดออกไปให้หน้าเว็บใช้
+            // --- 6. ส่งค่าออกไปให้ Template HTML ใช้งาน (ต้องมีชุดเดียวเท่านั้น) ---
             return {
                 currentPage, 
                 showLogoutModal, 
+                globalAlert,
                 inventory, 
                 suppliers,
                 wastageLogs,
                 categories, 
                 units,
-                handleLogin, // ต้องส่งฟังก์ชันนี้ออกไปด้วยถึงจะ Login ได้
+                currentUserEmail, 
+                userRole,         
+                handleLogin,
                 confirmLogout,
                 addCategory, 
                 addUnit,
@@ -217,7 +320,7 @@
         }
     });
 
-    // ลงทะเบียน Component (ตรวจสอบให้มั่นใจว่าไฟล์ js เหล่านี้ถูกเรียกใช้ด้านบนแล้ว)
+    // --- 7. ลงทะเบียน Component (ผูกไฟล์ js ย่อยๆ เข้ากับ Vue) ---
     app.component('page-login', LoginView);
     app.component('page-stock', StockView);
     app.component('page-reports', ReportView);
@@ -227,6 +330,7 @@
     app.component('page-activitylog', ActivityLogView);
     app.component('page-manageuser', ManageUserView);
     
+    // เริ่มทำงานระบบ
     app.mount('#app');
 </script>
 </body>
