@@ -172,56 +172,91 @@
             // --- 1. ตัวแปรสถานะหน้าจอ ---
             const currentPage = ref('login'); 
             const showLogoutModal = ref(false);
-            const globalAlert = ref({ show: false, title: '', message: '' });
+            const globalAlert = ref({ show: false, title: '', message: '' }); 
+            
             // --- 2. ตัวแปรข้อมูลผู้ใช้และสิทธิ์ ---
             const currentUserEmail = ref('');
             const userRole = ref(''); 
 
-            // --- 3. ข้อมูลเริ่มต้น ---
+            // --- [เพิ่มใหม่] ระบบตั้งเวลา Logout อัตโนมัติ (8 ชั่วโมง) ---
+            const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
+            let sessionTimer = null; // ตัวแปรเก็บ Timer
+
+            // ฟังก์ชันตรวจสอบเวลา
+            const checkSession = () => {
+                const loginTime = localStorage.getItem('loginTimestamp');
+                if (loginTime) {
+                    const timeElapsed = Date.now() - parseInt(loginTime, 10);
+                    if (timeElapsed > SESSION_TIMEOUT_MS) {
+                        // ถ้าเวลาผ่านไปเกิน 8 ชั่วโมง ให้บังคับ Logout
+                        firebase.auth().signOut().then(() => {
+                            globalAlert.value = {
+                                show: true,
+                                title: 'หมดเวลาเข้าใช้งาน',
+                                message: 'ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้งเพื่อความปลอดภัยครับ'
+                            };
+                            // ล้างข้อมูลที่จำไว้
+                            localStorage.removeItem('loginTimestamp');
+                            sessionStorage.removeItem('isLogged');
+                            if(sessionTimer) clearInterval(sessionTimer);
+                        });
+                    }
+                }
+            };
+
+            // --- ข้อมูลเริ่มต้น ---
             const categories = ref(['เนื้อสัตว์', 'ผักสด', 'เครื่องปรุง', 'เครื่องดื่ม']);
             const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค']);
             const inventory = ref([]);
             const suppliers = ref([]);
             const wastageLogs = ref([]);
 
-            // --- 4. ตรวจสอบสถานะล็อกอินและสิทธิ์ (ดึงข้อมูล Real-time) ---
+            // --- 4. ตรวจสอบสถานะล็อกอินและสิทธิ์ ---
             onMounted(() => {
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            currentUserEmail.value = user.email;
-            
-            db.collection("users").where("email", "==", user.email).get()
-            .then((querySnapshot) => {
-                if (!querySnapshot.empty) {
-                    const userData = querySnapshot.docs[0].data();
-                    userRole.value = userData.role || 'Staff'; 
-                    
-                    // 1. ถ้าบัญชีโดนระงับ
-                    if(userData.active === false) {
-                        globalAlert.value = {
-                            show: true,
-                            title: 'ระงับการเข้าถึง',
-                            message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
-                        };
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        let loginTime = localStorage.getItem('loginTimestamp');
+                        if (loginTime) {
+                            if (Date.now() - parseInt(loginTime, 10) > SESSION_TIMEOUT_MS) {
+                                firebase.auth().signOut(); 
+                                return;
+                            }
+                        } else {
+                            localStorage.setItem('loginTimestamp', Date.now().toString());
+                        }
+
+                        // [เพิ่มใหม่] สั่งให้ฟังก์ชันตรวจเวลาทำงานเงียบๆ ทุกๆ 1 นาที (60,000 ms)
+                        if(sessionTimer) clearInterval(sessionTimer);
+                        sessionTimer = setInterval(checkSession, 60000);
+
+                        currentUserEmail.value = user.email;
                         
-                        db.collection("activity_logs").add({
+                        db.collection("users").where("email", "==", user.email).get()
+                        .then((querySnapshot) => {
+                            if (!querySnapshot.empty) {
+                                const userData = querySnapshot.docs[0].data();
+                                userRole.value = userData.role || 'Staff'; 
+                                
+                                if(userData.active === false) {
+                                    globalAlert.value = {
+                                        show: true,
+                                        title: 'ระงับการเข้าถึง',
+                                        message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
+                                    };
+                                    db.collection("activity_logs").add({
                             userEmail: user.email,
                             module: 'ระบบล็อกอิน',
                             action: 'ERROR',
                             details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
+                                    firebase.auth().signOut(); 
+                                    return;
+                                }
 
-                        firebase.auth().signOut(); 
-                        return; 
-                    }
-
-                    // 2. ถ้าผ่านการเช็ค (ไม่โดนแบน) ให้พาไปหน้าหลัก
-                    currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
-                    
-                    // [เพิ่มใหม่] ค่อยมาส่ง Log "เข้าสู่ระบบสำเร็จ" ตรงนี้แทน!!
-                    // เช็คก่อนว่าเพิ่งมาจากหน้า login จริงๆ ค่อยส่ง log (ป้องกันการ refresh หน้าแล้วส่ง log รัวๆ)
-                    if (!sessionStorage.getItem('isLogged')) {
+                                currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
+                                
+                                 if (!sessionStorage.getItem('isLogged')) {
                         db.collection("activity_logs").add({
                             userEmail: user.email,
                             module: 'ระบบล็อกอิน',
@@ -229,40 +264,33 @@
                             details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
-                        sessionStorage.setItem('isLogged', 'true'); // ทำสัญลักษณ์ไว้ว่า session นี้ล็อกอินมาแล้ว
+                        sessionStorage.setItem('isLogged', 'true'); 
                     }
 
-                } else {
-                    // กรณีแปลกๆ ที่มีใน Auth แต่ไม่มีในฐานข้อมูล Users
-                    userRole.value = 'Staff';
-                    currentPage.value = 'stock';
-                    
-                    if (!sessionStorage.getItem('isLogged')) {
-                         db.collection("activity_logs").add({
-                            userEmail: user.email,
-                            module: 'ระบบล็อกอิน',
-                            action: 'LOGIN',
-                            details: 'เข้าสู่ระบบสำเร็จ (Staff ทั่วไป)',
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        sessionStorage.setItem('isLogged', 'true');
+                            } else {
+                                userRole.value = 'Staff';
+                                currentPage.value = 'stock';
+                                if (!sessionStorage.getItem('isLogged')) {
+                                    db.collection("activity_logs").add({ /*...*/ });
+                                    sessionStorage.setItem('isLogged', 'true');
+                                }
+                            }
+                        })
+                        .catch(err => { console.error("Error", err); currentPage.value = 'stock'; });
+
+                    } else {
+                        // ถ้าไม่ได้ล็อกอิน หรือเพิ่ง Logout ให้ล้างค่าทั้งหมดทิ้ง
+                        currentPage.value = 'login';
+                        userRole.value = '';
+                        currentUserEmail.value = '';
+                        
+                        // [เพิ่มใหม่] ล้างเวลาและ Timer
+                        localStorage.removeItem('loginTimestamp');
+                        sessionStorage.removeItem('isLogged');
+                        if(sessionTimer) clearInterval(sessionTimer);
                     }
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching user role:", err);
-                currentPage.value = 'stock';
+                });
             });
-
-        } else {
-            // ถ้าไม่มีใครล็อกอิน (หรือเพิ่งกด Logout มา)
-            currentPage.value = 'login';
-            userRole.value = '';
-            currentUserEmail.value = '';
-            sessionStorage.removeItem('isLogged'); // ล้างสัญลักษณ์ตอนกด Logout
-        }
-    });
-});
 
             // --- 5. ฟังก์ชันการทำงานต่างๆ ---
             const handleLogin = () => { 
@@ -282,6 +310,12 @@
                     return firebase.auth().signOut();
                 }).then(() => {
                     showLogoutModal.value = false;
+                    
+                    //ไว้ล้างค่า
+                    localStorage.removeItem('loginTimestamp');
+                    sessionStorage.removeItem('isLogged');
+                    if(sessionTimer) clearInterval(sessionTimer);
+                    
                 }).catch((error) => {
                     console.error("Logout Error:", error);
                 });
