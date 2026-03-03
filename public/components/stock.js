@@ -1,30 +1,42 @@
 const StockView = {
-    // เอา stockData ออกจาก props เพราะเราจะดึงตรงจาก Firebase
-    props: ['categories', 'units', 'suppliers'], 
-    data() {
-        return {
-            stockData: [], // สร้าง array ว่างไว้รอรับข้อมูลจาก Firebase
-            showAddModal: false,
-            showEditModal: false,
-            activeItem: null,
-            editingItem: null,
-            actionType: 'in',
-            actionQty: 0,
-            search: '',
-            filterCat: '',
-            newItem: { 
-                name: '', 
-                cat: '', 
-                supplier: '', 
-                qty: 0, 
-                min: 0, 
-                unit: '', 
-                price: 0 
-            }
-        }
-    },
-    // --- (Template HTML เหมือนเดิมทั้งหมด ขอละไว้เพื่อความกระชับ) ---
-    template: `
+  // เอา stockData ออกจาก props เพราะเราจะดึงตรงจาก Firebase
+  props: ["categories", "units", "suppliers"],
+  data() {
+    return {
+      stockData: [], // สร้าง array ว่างไว้รอรับข้อมูลจาก Firebase
+      showAddModal: false,
+      showEditModal: false,
+      showCatModal: false,
+      showUnitModal: false,
+      showDeleteModal: false,
+      itemToDelete: null,
+      newCatName: "",
+      newUnitName: "",
+      activeItem: null,
+      editingItem: null,
+      actionType: "in",
+      actionQty: 0,
+      search: "",
+      filterCat: "",
+      alertModal: {
+        show: false,
+        title: "",
+        message: "",
+        confirmAction: null,
+      },
+      newItem: {
+        name: "",
+        cat: "",
+        supplier: "",
+        qty: 0,
+        min: 0,
+        unit: "",
+        price: 0,
+      },
+    };
+  },
+  // --- (Template HTML เหมือนเดิมทั้งหมด ขอละไว้เพื่อความกระชับ) ---
+  template: `
     <section class="w-full text-left">
         <div class="flex justify-between items-end mb-8 no-print border-b border-slate-100 pb-6">
             <div class="text-left">
@@ -106,7 +118,7 @@ const StockView = {
         </div>
 
         <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
                 <div class="bg-green-600 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase tracking-tighter">
                     <span>📦 ลงทะเบียนวัตถุดิบใหม่</span>
                     <button @click="showAddModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
@@ -166,8 +178,8 @@ const StockView = {
         </div>
 
         <div v-if="showEditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200" v-if="editingItem">
-                <div class="bg-blue-600 p-6 text-white text-lg font-bold italic uppercase tracking-tighter">✏️ แก้ไขข้อมูลวัตถุดิบ</div>
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white" v-if="editingItem">
+        <div class="bg-blue-600 p-6 text-white text-lg font-bold italic uppercase tracking-tighter">✏️ แก้ไขข้อมูลวัตถุดิบ</div>
                 <div class="p-8 space-y-5">
                     <input v-model="editingItem.name" type="text" class="w-full border-b-2 p-2 outline-none focus:border-blue-600 font-bold text-lg">
                     
@@ -217,134 +229,275 @@ const StockView = {
                 </div>
             </div>
         </div>
+        <div v-if="showCatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
+        <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase">
+            <span><i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่</span>
+            <button @click="showCatModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
+        </div>
+        <div class="p-8">
+            <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
+            <input v-model="newCatName" @keyup.enter="saveCategory" type="text" placeholder="เช่น ผักสด, เครื่องปรุง..." class="w-full border-b-2 p-2 outline-none focus:border-slate-800 font-bold text-lg transition">
+        </div>
+        <div class="p-6 bg-slate-50 flex gap-4 border-t">
+            <button @click="showCatModal = false" class="flex-1 py-3 text-slate-400 font-bold text-xs uppercase">ยกเลิก</button>
+            <button @click="saveCategory" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg hover:bg-black transition text-xs uppercase">บันทึกหมวดหมู่</button>
+        </div>
+    </div>
+</div>
+
+<div v-if="showUnitModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
+        <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase">
+            <span><i class="fas fa-balance-scale mr-2"></i> เพิ่มหน่วยนับ</span>
+            <button @click="showUnitModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
+        </div>
+        <div class="p-8">
+            <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-widest">ชื่อหน่วยนับ</label>
+            <input v-model="newUnitName" @keyup.enter="saveUnit" type="text" placeholder="เช่น กิโลกรัม, ลิตร, ฟอง..." class="w-full border-b-2 p-2 outline-none focus:border-slate-800 font-bold text-lg transition">
+        </div>
+        <div class="p-6 bg-slate-50 flex gap-4 border-t">
+            <button @click="showUnitModal = false" class="flex-1 py-3 text-slate-400 font-bold text-xs uppercase">ยกเลิก</button>
+            <button @click="saveUnit" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg hover:bg-black transition text-xs uppercase">บันทึกหน่วยนับ</button>
+        </div>
+    </div>
+</div>
+
+<div v-if="showDeleteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
+        <div class="bg-red-600 p-6 text-white text-center">
+            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการลบข้อมูล?</h3>
+        </div>
+        
+        <div class="p-8 text-center">
+            <p class="text-slate-500 text-sm mb-1">คุณกำลังจะลบวัตถุดิบ:</p>
+            <div class="text-2xl font-bold text-slate-800 mb-2">{{ itemToDelete?.name }}</div>
+            <div class="bg-red-50 text-red-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
+                ⚠️ ประวัติการรับ-จ่ายทั้งหมดจะถูกลบถาวร
+            </div>
+        </div>
+
+        <div class="p-6 bg-slate-50 flex gap-3 border-t">
+            <button @click="showDeleteModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
+            <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยัน</button>
+        </div>
+    </div>
+</div>
+
+<div v-if="alertModal.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[90]">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
+        <div class="bg-amber-500 p-6 text-white text-center">
+            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-exclamation-circle text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-black uppercase italic">{{ alertModal.title }}</h3>
+        </div>
+        <div class="p-6 text-center text-slate-600 font-medium">
+            {{ alertModal.message }}
+        </div>
+        <div class="p-4 bg-slate-50">
+            <button @click="alertModal.show = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
+        </div>
+    </div>
+</div>
     </section>
     `,
-    computed: {
-        filteredItems() {
-            return this.stockData.filter(i => {
-                const matchName = i.name.toLowerCase().includes(this.search.toLowerCase());
-                const matchCat = this.filterCat === '' || i.cat === this.filterCat;
-                return matchName && matchCat;
-            });
-        }
+  computed: {
+    filteredItems() {
+      return this.stockData.filter((i) => {
+        const matchName = i.name
+          .toLowerCase()
+          .includes(this.search.toLowerCase());
+        const matchCat = this.filterCat === "" || i.cat === this.filterCat;
+        return matchName && matchCat;
+      });
     },
-    // 1. ดึงข้อมูลทันทีที่ Component โหลด
-    mounted() {
-        // อ้างอิงถึงคอลเลกชัน "inventory" ใน Firestore
-        db.collection("inventory").onSnapshot((querySnapshot) => {
-            const items = [];
-            querySnapshot.forEach((doc) => {
-                items.push({ id: doc.id, ...doc.data() });
-            });
-            this.stockData = items;
+  },
+  // 1. ดึงข้อมูลทันทีที่ Component โหลด
+  mounted() {
+    // อ้างอิงถึงคอลเลกชัน "inventory" ใน Firestore
+    db.collection("inventory").onSnapshot((querySnapshot) => {
+      const items = [];
+      querySnapshot.forEach((doc) => {
+        items.push({ id: doc.id, ...doc.data() });
+      });
+      this.stockData = items;
+    });
+  },
+  methods: {
+    triggerAlert(title, message) {
+      this.alertModal = { show: true, title, message };
+    },
+    // 2. เพิ่มข้อมูลใหม่
+    addNewItem() {
+      if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
+        return this.triggerAlert(
+          "ข้อมูลไม่ครบถ้วน",
+          "กรุณาระบุข้อมูลให้ครบถ้วน",
+        );
+      }
+
+      db.collection("inventory")
+        .add({})
+        .then(() => {
+          this.showAddModal = false;
+          this.newItem = {
+            name: "",
+            cat: "",
+            supplier: "",
+            qty: 0,
+            min: 0,
+            unit: "",
+            price: 0,
+          };
+        })
+        .catch((error) => {
+          console.error("Error adding document: ", error);
+          this.triggerAlert(
+            "เกิดข้อผิดพลาด",
+            "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+          );
         });
     },
-    methods: {
-        // 2. เพิ่มข้อมูลใหม่
-        addNewItem() {
-            if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
-                return alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
-            }
-            
-            // ใช้ db.collection().add แทน Array.push()
-            db.collection("inventory").add({
-                name: this.newItem.name,
-                cat: this.newItem.cat,
-                supplier: this.newItem.supplier,
-                qty: this.newItem.qty,
-                min: this.newItem.min,
-                unit: this.newItem.unit,
-                price: this.newItem.price,
-                // เก็บประวัติแรกเริ่ม
-                history: [{ 
-                    date: new Date().toISOString(), 
-                    type: 'in', 
-                    qty: this.newItem.qty 
-                }]
-            }).then(() => {
-                this.showAddModal = false;
-                this.newItem = { name: '', cat: '', supplier: '', qty: 0, min: 0, unit: '', price: 0 };
-            }).catch((error) => {
-                console.error("Error adding document: ", error);
-                alert("เกิดข้อผิดพลาดในการบันทึก");
-            });
-        },
-        
-        // 3. แก้ไขข้อมูล
-        startEdit(item) {
-            this.editingItem = JSON.parse(JSON.stringify(item));
-            this.showEditModal = true;
-        },
-        saveEdit() {
-            // สร้าง copy ข้อมูลโดยไม่เอา id ไปอัปเดตทับ
-            const updateData = { ...this.editingItem };
-            delete updateData.id; 
 
-            // อัปเดตไปยังเอกสารที่ตรงกับ id
-            db.collection("inventory").doc(this.editingItem.id).update(updateData)
-            .then(() => {
-                this.showEditModal = false;
-                this.editingItem = null;
-            })
-            .catch((error) => {
-                console.error("Error updating document: ", error);
-            });
-        },
+    // 3. แก้ไขข้อมูล
+    startEdit(item) {
+      this.editingItem = JSON.parse(JSON.stringify(item));
+      this.showEditModal = true;
+    },
+    saveEdit() {
+      // สร้าง copy ข้อมูลโดยไม่เอา id ไปอัปเดตทับ
+      const updateData = { ...this.editingItem };
+      delete updateData.id;
 
-        // 4. ลบข้อมูล
-        deleteItem(item) {
-            if (confirm(`คุณต้องการลบ "${item.name}"? ประวัติจะหายไปถาวร!`)) {
-                db.collection("inventory").doc(item.id).delete()
-                .catch((error) => console.error("Error deleting document: ", error));
-            }
-        },
+      // อัปเดตไปยังเอกสารที่ตรงกับ id
+      db.collection("inventory")
+        .doc(this.editingItem.id)
+        .update(updateData)
+        .then(() => {
+          this.showEditModal = false;
+          this.editingItem = null;
+        })
+        .catch((error) => {
+          console.error("Error updating document: ", error);
+        });
+    },
 
-        // 5. รับเข้า / เบิกจ่าย
-        openAction(item, type) {
-            this.activeItem = item;
-            this.actionType = type;
-            this.actionQty = 0;
-        },
-        confirmAction() {
-            if (this.actionQty <= 0) return alert("กรุณาระบุจำนวนที่ถูกต้อง!");
-            
-            let newQty = this.activeItem.qty;
-            if (this.actionType === 'in') {
-                newQty += this.actionQty;
-            } else {
-                if (newQty < this.actionQty) return alert("สินค้าในคลังไม่เพียงพอ!");
-                newQty -= this.actionQty;
-            }
+    // 4. ลบข้อมูล
+    deleteItem(item) {
+      this.itemToDelete = item;
+      this.showDeleteModal = true;
+    },
 
-            // สร้างประวัติใหม่
-            const newHistory = { 
-                date: new Date().toISOString(), 
-                type: this.actionType, 
-                qty: this.actionQty 
-            };
-            
-            // ดึงประวัติเก่ามาเรียงต่อกัน
-            const updatedHistory = [newHistory, ...(this.activeItem.history || [])];
+    confirmDelete() {
+      if (!this.itemToDelete) return;
 
-            // อัปเดตเฉพาะค่า qty และ history
-            db.collection("inventory").doc(this.activeItem.id).update({
-                qty: newQty,
-                history: updatedHistory
-            }).then(() => {
-                this.activeItem = null;
-            }).catch(error => {
-                console.error("Error updating stock: ", error);
-                alert("เกิดข้อผิดพลาดในการอัปเดตสต๊อก");
-            });
-        },
+      db.collection("inventory")
+        .doc(this.itemToDelete.id)
+        .delete()
+        .then(() => {
+          this.showDeleteModal = false;
+          this.itemToDelete = null;
 
-        promptNewCategory() {
-            const name = prompt("ระบุชื่อหมวดหมู่ใหม่:");
-            if (name && name.trim()) this.$emit('add-category', name.trim());
-        },
-        promptNewUnit() {
-            const name = prompt("ระบุชื่อหน่วยนับใหม่:");
-            if (name && name.trim()) this.$emit('add-unit', name.trim());
+          console.log("Document successfully deleted!");
+        })
+        .catch((error) => {
+          console.error("Error deleting document: ", error);
+          alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+        });
+    },
+
+    // 5. รับเข้า / เบิกจ่าย
+    openAction(item, type) {
+      this.activeItem = item;
+      this.actionType = type;
+      this.actionQty = 0;
+    },
+    confirmAction() {
+      if (this.actionQty <= 0) {
+        return this.triggerAlert(
+          "จำนวนไม่ถูกต้อง",
+          "กรุณาระบุจำนวนที่มากกว่า 0",
+        );
+      }
+
+      let newQty = this.activeItem.qty;
+      if (this.actionType === "in") {
+        newQty += this.actionQty;
+      } else {
+        if (newQty < this.actionQty) {
+          return this.triggerAlert(
+            "สต๊อกไม่พอ",
+            "จำนวนวัตถุดิบในคลังมีไม่เพียงพอสำหรับการเบิกออก",
+          );
         }
-    }
+        newQty -= this.actionQty;
+      }
+
+      // สร้างประวัติใหม่
+      const newHistory = {
+        date: new Date().toISOString(),
+        type: this.actionType,
+        qty: this.actionQty,
+      };
+
+      // ดึงประวัติเก่ามาเรียงต่อกัน
+      const updatedHistory = [newHistory, ...(this.activeItem.history || [])];
+
+      // อัปเดตเฉพาะค่า qty และ history
+      db.collection("inventory")
+        .doc(this.activeItem.id)
+        .update({
+          qty: newQty,
+          history: updatedHistory,
+        })
+        .then(() => {
+          this.activeItem = null;
+        })
+        .catch((error) => {
+          console.error("Error updating stock: ", error);
+          alert("เกิดข้อผิดพลาดในการอัปเดตสต๊อก");
+        });
+    },
+
+    promptNewCategory() {
+      this.newCatName = "";
+      this.showCatModal = true;
+    },
+    promptNewUnit() {
+      this.newUnitName = "";
+      this.showUnitModal = true;
+    },
+
+    saveCategory() {
+      const val = this.newCatName.trim();
+      if (val) {
+        this.$emit("add-category", val);
+        this.showCatModal = false;
+        this.newCatName = "";
+      } else {
+        this.triggerAlert(
+          "ยังไม่ได้ระบุชื่อ",
+          "กรุณาใส่ชื่อหมวดหมู่ที่ต้องการเพิ่ม",
+        );
+      }
+    },
+
+    saveUnit() {
+      const val = this.newUnitName.trim();
+      if (val) {
+        this.$emit("add-unit", val);
+        this.showUnitModal = false;
+        this.newUnitName = "";
+      } else {
+        this.triggerAlert(
+          "ยังไม่ได้ระบุชื่อ",
+          "กรุณาใส่ชื่อหน่วยนับที่ต้องการเพิ่ม",
+        );
+      }
+    },
+  },
 };
