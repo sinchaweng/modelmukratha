@@ -75,7 +75,7 @@
             <span class="font-bold text-sm">บันทึกของเสีย</span>
         </button>
 
-        <button @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
+        <button v-if="userRole === 'Admin'" @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
             <i class="fas fa-truck group-hover:scale-110 transition"></i> 
             <span class="font-bold text-sm">ข้อมูลคู่ค้า/Supplier</span>
         </button>
@@ -113,7 +113,7 @@
                 <component :is="'page-' + currentPage" 
            :categories="categories" 
            :units="units"
-           @login-success="handleLogin" 
+           :user-role="userRole" @login-success="handleLogin" 
            @add-category="addCategory" 
            @add-unit="addUnit">
                 </component>

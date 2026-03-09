@@ -1,5 +1,5 @@
 const StockView = {
-  props: ["categories", "units"],
+  props: ["categories", "units", "userRole"],
   data() {
     return {
       stockData: [], 
@@ -25,6 +25,7 @@ const StockView = {
         confirmAction: null,
       },
       newItem: {
+        sku: "", // [เพิ่มใหม่] ฟิลด์รหัสสินค้า
         name: "",
         cat: "",
         supplier: "",
@@ -41,7 +42,7 @@ const StockView = {
             <div class="text-left">
                 <h2 class="text-3xl font-bold text-slate-800">จัดการคลังวัตถุดิบ</h2>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2" v-if="userRole === 'Admin'">
                 <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
                     <i class="fas fa-tags"></i> + หมวดหมู่
                 </button>
@@ -58,7 +59,7 @@ const StockView = {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="relative">
                 <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
-                <input v-model="search" type="text" placeholder="ค้นหาชื่อวัตถุดิบ..." class="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white">
+                <input v-model="search" type="text" placeholder="ค้นหารหัส หรือ ชื่อวัตถุดิบ..." class="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white">
             </div>
             <select v-model="filterCat" class="px-4 py-2 border rounded-xl outline-none text-sm bg-white cursor-pointer font-medium">
                 <option value="">ทุกหมวดหมู่ (ทั้งหมด)</option>
@@ -70,7 +71,7 @@ const StockView = {
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold border-b">
                     <tr>
-                        <th class="p-5 w-1/3">รายการวัตถุดิบ / ประเภท</th>
+                        <th class="p-5 w-1/3">รหัส / รายการวัตถุดิบ</th>
                         <th class="p-5 w-1/6">คู่ค้า</th>
                         <th class="p-5 text-center">ราคา/หน่วย</th>
                         <th class="p-5 text-center">คงเหลือ</th>
@@ -80,6 +81,7 @@ const StockView = {
                 <tbody class="text-sm">
                     <tr v-for="item in filteredItems" :key="item.id" class="border-b last:border-0 hover:bg-slate-50 transition group">
                         <td class="p-5 text-left">
+                            <div class="text-[10px] text-orange-500 font-black mb-0.5 tracking-wider">{{ item.sku || '-' }}</div>
                             <div class="font-bold text-slate-700 text-base group-hover:text-slate-900">{{ item.name }}</div>
                             <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ item.cat }}</div>
                         </td>
@@ -89,7 +91,10 @@ const StockView = {
                                 {{ item.supplier || '-' }}
                             </div>
                         </td>
-                        <td class="p-5 text-center text-slate-500 font-mono italic">฿ {{ (item.price || 0).toLocaleString() }}</td>
+                        <td class="p-5 text-center text-slate-500 font-mono italic">
+                            <span v-if="userRole === 'Admin'">฿ {{ (item.price || 0).toLocaleString() }}</span>
+                            <span v-else>-</span>
+                        </td>
                         <td class="p-5 text-center">
                             <div :class="item.qty <= item.min ? 'text-red-600' : 'text-slate-700'" class="text-xl font-black font-mono">
                                 {{ item.qty }} <span class="text-[10px] font-normal text-slate-400 uppercase ml-1">{{ item.unit }}</span>
@@ -102,7 +107,8 @@ const StockView = {
                             <div class="flex justify-center gap-1.5">
                                 <button @click="openAction(item, 'in')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-blue-700 transition">รับเข้า</button>
                                 <button @click="openAction(item, 'out')" class="bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-orange-700 transition">เบิกออก</button>
-                                <div class="flex gap-1 ml-1 pl-2 border-l border-slate-200">
+                                
+                                <div v-if="userRole === 'Admin'" class="flex gap-1 ml-1 pl-2 border-l border-slate-200">
                                     <button @click="startEdit(item)" class="text-slate-400 hover:text-blue-600 p-1.5 transition"><i class="fas fa-edit text-xs"></i></button>
                                     <button @click="deleteItem(item)" class="text-slate-300 hover:text-red-500 p-1.5 transition"><i class="fas fa-trash-alt text-xs"></i></button>
                                 </div>
@@ -123,11 +129,19 @@ const StockView = {
                     <button @click="showAddModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
                 </div>
                 <div class="p-8 space-y-5">
+                    
                     <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block tracking-widest">รหัสสินค้า (SKU)</label>
+                            <input v-model="newItem.sku" type="text" placeholder="เช่น RM-001" class="w-full border-b-2 p-2 outline-none focus:border-green-600 font-bold text-lg transition text-orange-500">
+                        </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block tracking-widest">ชื่อวัตถุดิบ</label>
                             <input v-model="newItem.name" type="text" placeholder="ระบุชื่อ..." class="w-full border-b-2 p-2 outline-none focus:border-green-600 font-bold text-lg transition">
                         </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">หมวดหมู่</label>
                             <select v-model="newItem.cat" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
@@ -135,14 +149,13 @@ const StockView = {
                                 <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">คู่ค้า</label>
-                        <select v-model="newItem.supplier" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
-                            <option value="" disabled>เลือกคู่ค้า</option>
-                            <option v-for="sup in suppliersData" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
-                        </select>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">คู่ค้า</label>
+                            <select v-model="newItem.supplier" class="w-full border-b-2 p-2 outline-none bg-white text-sm font-medium">
+                                <option value="" disabled>เลือกคู่ค้า</option>
+                                <option v-for="sup in suppliersData" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-6">
@@ -180,7 +193,17 @@ const StockView = {
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white" v-if="editingItem">
                 <div class="bg-blue-600 p-6 text-white text-lg font-bold italic uppercase tracking-tighter">✏️ แก้ไขข้อมูลวัตถุดิบ</div>
                 <div class="p-8 space-y-5">
-                    <input v-model="editingItem.name" type="text" class="w-full border-b-2 p-2 outline-none focus:border-blue-600 font-bold text-lg">
+                    
+                    <div class="grid grid-cols-2 gap-6 mb-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">รหัสสินค้า</label>
+                            <input v-model="editingItem.sku" type="text" class="w-full border-b-2 p-2 outline-none focus:border-blue-600 font-bold text-lg text-orange-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">ชื่อวัตถุดิบ</label>
+                            <input v-model="editingItem.name" type="text" class="w-full border-b-2 p-2 outline-none focus:border-blue-600 font-bold text-lg">
+                        </div>
+                    </div>
                     
                     <div>
                         <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">คู่ค้า</label>
@@ -215,7 +238,8 @@ const StockView = {
                     {{ actionType === 'in' ? '📥 รับเข้าสินค้า' : '📤 เบิกจ่ายสินค้า' }}
                 </div>
                 <div class="p-10 text-center">
-                    <div class="text-slate-400 mb-2 font-bold text-xs uppercase tracking-tighter">{{ activeItem.name }}</div>
+                    <div class="text-orange-500 font-black text-xs">{{ activeItem.sku }}</div>
+                    <div class="text-slate-700 mb-4 font-bold text-lg uppercase tracking-tighter">{{ activeItem.name }}</div>
                     <div class="flex items-center justify-center gap-2">
                         <button @click="actionQty > 0 ? actionQty-- : null" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-lg">-</button>
                         <input v-model.number="actionQty" type="number" class="w-24 text-center text-5xl font-black border-b-4 border-slate-100 py-2 outline-none focus:border-slate-300 font-mono" placeholder="0">
@@ -271,15 +295,13 @@ const StockView = {
                     </div>
                     <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการนำออก?</h3>
                 </div>
-                
                 <div class="p-8 text-center">
                     <p class="text-slate-500 text-sm mb-1">คุณต้องการลบวัตถุดิบ:</p>
                     <div class="text-2xl font-bold text-slate-800 mb-2">{{ itemToDelete?.name }}</div>
                     <div class="bg-orange-50 text-orange-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
-                       ข้อมูลที่ถูกลบจะหายไปจากระบบ
+                        ข้อมูลที่ถูกลบจะหายไปจากระบบ
                     </div>
                 </div>
-
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
                     <button @click="showDeleteModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
                     <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยันนำออก</button>
@@ -308,11 +330,12 @@ const StockView = {
   computed: {
     filteredItems() {
       return this.stockData.filter((i) => {
-        const matchName = i.name.toLowerCase().includes(this.search.toLowerCase());
+        // [อัปเดต] ให้ช่อง Search ค้นหาจาก SKU ได้ด้วย
+        const matchNameOrSku = i.name.toLowerCase().includes(this.search.toLowerCase()) || 
+                               (i.sku || '').toLowerCase().includes(this.search.toLowerCase());
         const matchCat = this.filterCat === "" || i.cat === this.filterCat;
-        // 1. [สำคัญ] กรองเฉพาะอันที่เป็น active !== false มาโชว์
         const isActive = i.active !== false; 
-        return matchName && matchCat && isActive;
+        return matchNameOrSku && matchCat && isActive;
       });
     },
   },
@@ -339,7 +362,6 @@ const StockView = {
     },
     
     logActivity(action, details) {
-      // ดึงอีเมลผู้ใช้ปัจจุบัน ถ้าไม่มีให้เป็น System
       const userEmail = firebase.auth().currentUser?.email || 'System';
       db.collection("activity_logs").add({
           userEmail: userEmail,
@@ -351,19 +373,21 @@ const StockView = {
     },
 
     addNewItem() {
+      if (this.userRole !== 'Admin') return; 
+
       if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
         return this.triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุข้อมูลให้ครบถ้วน");
       }
 
-      // 2. เพิ่มฟิลด์ active: true เข้าไปตอนสร้างใหม่
       const itemToSave = { ...this.newItem, active: true };
 
       db.collection("inventory").add(itemToSave)
         .then(() => {
-          this.logActivity('CREATE', `เพิ่มวัตถุดิบใหม่: ${this.newItem.name} (${this.newItem.qty} ${this.newItem.unit})`);
+          const codeInfo = this.newItem.sku ? `[${this.newItem.sku}] ` : '';
+          this.logActivity('CREATE', `เพิ่มวัตถุดิบใหม่: ${codeInfo}${this.newItem.name}`);
           
           this.showAddModal = false;
-          this.newItem = { name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
+          this.newItem = { sku: "", name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
         })
         .catch((error) => {
           console.error("Error adding document: ", error);
@@ -372,11 +396,14 @@ const StockView = {
     },
 
     startEdit(item) {
+      if (this.userRole !== 'Admin') return; 
       this.editingItem = JSON.parse(JSON.stringify(item));
       this.showEditModal = true;
     },
     
     saveEdit() {
+      if (this.userRole !== 'Admin') return;
+
       const updateData = { ...this.editingItem };
       delete updateData.id;
 
@@ -395,14 +422,15 @@ const StockView = {
     },
 
     deleteItem(item) {
+      if (this.userRole !== 'Admin') return;
       this.itemToDelete = item;
       this.showDeleteModal = true;
     },
 
     confirmDelete() {
+      if (this.userRole !== 'Admin') return;
       if (!this.itemToDelete) return;
 
-      // 3. เปลี่ยนจาก .delete() เป็น .update({ active: false }) 
       db.collection("inventory")
         .doc(this.itemToDelete.id)
         .update({ active: false })
@@ -466,15 +494,18 @@ const StockView = {
     },
 
     promptNewCategory() {
+      if (this.userRole !== 'Admin') return;
       this.newCatName = "";
       this.showCatModal = true;
     },
     promptNewUnit() {
+      if (this.userRole !== 'Admin') return;
       this.newUnitName = "";
       this.showUnitModal = true;
     },
 
     saveCategory() {
+      if (this.userRole !== 'Admin') return;
       const val = this.newCatName.trim();
       if (val) {
         this.$emit("add-category", val);
@@ -487,6 +518,7 @@ const StockView = {
     },
 
     saveUnit() {
+      if (this.userRole !== 'Admin') return;
       const val = this.newUnitName.trim();
       if (val) {
         this.$emit("add-unit", val);

@@ -9,7 +9,7 @@ const WastageView = {
                 
                 <select v-model="form.itemId" class="p-3 border rounded-xl outline-none focus:border-red-500 font-bold text-slate-700 bg-white">
                     <option value="" disabled>เลือกวัตถุดิบที่เสียหาย</option>
-                    <option v-for="item in inventoryData" :key="item.id" :value="item.id">
+                    <option v-for="item in activeInventory" :key="item.id" :value="item.id">
                         {{ item.name }} (เหลือ {{ item.qty }} {{ item.unit }})
                     </option>
                 </select>
@@ -33,6 +33,7 @@ const WastageView = {
                         <th class="p-5">จำนวนที่เสีย</th>
                         <th class="p-5">สาเหตุ</th>
                         <th class="p-5 text-right">มูลค่าความเสียหาย</th>
+                        <th class="p-5 text-center">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,9 +43,14 @@ const WastageView = {
                         <td class="p-5 font-bold text-red-600">{{ log.qty }} <span class="text-xs font-normal text-slate-400">{{ log.unit }}</span></td>
                         <td class="p-5"><span class="text-slate-600 text-sm"><i class="fas fa-info-circle text-red-400 mr-1"></i>{{ log.reason }}</span></td>
                         <td class="p-5 text-right font-black text-red-600">฿ {{ (log.cost || 0).toLocaleString() }}</td>
+                        <td class="p-5 text-center">
+                            <button @click="removeLog(log)" class="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </td>
                     </tr>
                     <tr v-if="formattedLogs.length === 0">
-                        <td colspan="5" class="p-10 text-center text-slate-400 font-bold">ยังไม่มีประวัติการบันทึกของเสีย</td>
+                        <td colspan="6" class="p-10 text-center text-slate-400 font-bold">ยังไม่มีประวัติการบันทึกของเสีย</td>
                     </tr>
                 </tbody>
             </table>
@@ -74,13 +80,40 @@ const WastageView = {
             </div>
         </div>
 
+        <div v-if="showDeleteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
+                <div class="bg-red-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black uppercase italic tracking-tighter">ยกเลิกรายการนี้?</h3>
+                </div>
+                <div class="p-8 text-center" v-if="itemToDelete">
+                    <p class="text-slate-500 text-sm mb-1">ต้องการยกเลิกประวัติของเสีย:</p>
+                    <div class="text-xl font-bold text-slate-800 mb-2">{{ itemToDelete.itemName }} ({{ itemToDelete.qty }} {{ itemToDelete.unit }})</div>
+                    <div class="bg-orange-50 text-orange-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest mb-4">
+                        ℹ️ ระบบจะทำการคืนสต๊อกกลับเข้าคลังให้โดยอัตโนมัติ
+                    </div>
+                    
+                    <div class="text-left mt-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">ระบุเหตุผลที่ยกเลิก <span class="text-red-500">*</span></label>
+                        <input v-model="deleteReason" @keyup.enter="confirmDelete" type="text" placeholder="เช่น บันทึกผิด, ใส่จำนวนผิด..." class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none focus:border-red-500 text-sm transition font-medium text-slate-700 bg-slate-50">
+                    </div>
+                </div>
+                <div class="p-6 bg-slate-50 flex gap-3 border-t">
+                    <button @click="showDeleteModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ปิด</button>
+                    <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยันการยกเลิก</button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showErrorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200">
                 <div class="bg-amber-500 p-6 text-white text-center">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-circle text-2xl"></i>
                     </div>
-                    <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
+                    <h3 class="text-lg font-black uppercase italic">แจ้งเตือนจากระบบ</h3>
                 </div>
                 <div class="p-6 text-center text-slate-600 font-medium">
                     {{ errorMessage }}
@@ -101,22 +134,30 @@ const WastageView = {
       pendingData: null,
       showErrorModal: false,
       errorMessage: "",
+      showDeleteModal: false,
+      itemToDelete: null,
+      deleteReason: "", 
     };
   },
   computed: {
+    activeInventory() {
+      return this.inventoryData.filter(item => item.active !== false);
+    },
     formattedLogs() {
-      return this.wastageLogs.map((log) => {
-        const dateObj = new Date(log.date);
-        return {
-          ...log,
-          displayDate: dateObj.toLocaleString("th-TH", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
+      return this.wastageLogs
+        .filter(log => log.active !== false)
+        .map((log) => {
+          const dateObj = new Date(log.date);
+          return {
+            ...log,
+            displayDate: dateObj.toLocaleString("th-TH", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          };
       });
     },
   },
@@ -185,12 +226,14 @@ const WastageView = {
       const isoDate = new Date().toISOString();
 
       const newLog = {
+        itemId: data.id, // [เพิ่มใหม่] แอบจำ id สินค้าเอาไว้ใช้ตอนยกเลิก
         itemName: data.itemName,
         qty: data.qty,
         unit: data.unit,
         reason: data.reason,
         cost: data.cost,
-        date: isoDate
+        date: isoDate,
+        active: true 
       };
 
       const newHistory = {
@@ -215,7 +258,6 @@ const WastageView = {
             });
         })
         .then(() => {
-          // บันทึก Log การกระทำลงในประวัติผู้ใช้งาน
           this.logActivity('CREATE', `บันทึกของเสีย: ${data.itemName} จำนวน ${data.qty} ${data.unit}`);
           
           this.form = { itemId: "", qty: "", reason: "" };
@@ -223,8 +265,88 @@ const WastageView = {
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("เกิดข้อผิดพลาด: " + error.message);
+          this.errorMessage = "เกิดข้อผิดพลาด: " + error.message;
+          this.showErrorModal = true;
         });
+    },
+
+    removeLog(log) {
+      this.itemToDelete = log;
+      this.deleteReason = ""; 
+      this.showDeleteModal = true;
+    },
+
+    // [ปรับเป็น async] เพื่อรอให้คืนสต๊อกสำเร็จก่อนค่อยปิดหน้าต่าง
+    async confirmDelete() {
+      if (!this.itemToDelete) return;
+      
+      if (!this.deleteReason.trim()) {
+        this.errorMessage = "กรุณาระบุเหตุผลที่ต้องการยกเลิกรายการนี้";
+        this.showErrorModal = true;
+        return;
+      }
+      
+      try {
+        // 1. ซ่อนข้อมูลของเสีย
+        await db.collection("wastage").doc(this.itemToDelete.id).update({ 
+          active: false,
+          voidReason: this.deleteReason.trim()
+        });
+
+        // 2. หากล่องสินค้าต้นฉบับ เพื่อคืนจำนวนสต๊อก
+        let invRef = null;
+        let invData = null;
+
+        // ถ้าของเสียนี้มี itemId (ระบบใหม่)
+        if (this.itemToDelete.itemId) {
+            const doc = await db.collection("inventory").doc(this.itemToDelete.itemId).get();
+            if (doc.exists) {
+                invRef = doc.ref;
+                invData = doc.data();
+            }
+        }
+
+        // ถ้าเป็นของเสียที่บันทึกไว้ในระบบเก่า (ไม่มี itemId) ให้พยายามหาจากชื่อแทน
+        if (!invRef) {
+            const snapshot = await db.collection("inventory").where("name", "==", this.itemToDelete.itemName).get();
+            if (!snapshot.empty) {
+                invRef = snapshot.docs[0].ref;
+                invData = snapshot.docs[0].data();
+            }
+        }
+
+        // 3. คืนสต๊อกและเพิ่มประวัติการคืน
+        if (invRef && invData) {
+            const isoDate = new Date().toISOString();
+            const refundHistory = {
+                date: isoDate,
+                type: "in", // ทำเป็นยอดรับเข้า
+                qty: this.itemToDelete.qty,
+                note: "ยกเลิกบันทึกของเสีย: " + this.deleteReason.trim(),
+            };
+            
+            const updatedHistory = [refundHistory, ...(invData.history || [])];
+
+            await invRef.update({
+                qty: Number(invData.qty) + Number(this.itemToDelete.qty),
+                history: updatedHistory
+            });
+        } else {
+            console.warn("ไม่พบสินค้าต้นฉบับในคลังเพื่อคืนสต๊อก (อาจถูกลบไปแล้ว)");
+        }
+
+        // 4. บันทึก Log การยกเลิก
+        this.logActivity('DELETE', `ยกเลิกรายการของเสีย: ${this.itemToDelete.itemName} จำนวน ${this.itemToDelete.qty} ${this.itemToDelete.unit} | เหตุผล: ${this.deleteReason.trim()}`);
+        
+        this.showDeleteModal = false;
+        this.itemToDelete = null;
+        this.deleteReason = "";
+
+      } catch (error) {
+        console.error("Error hiding log: ", error);
+        this.errorMessage = "เกิดข้อผิดพลาดในการยกเลิกและคืนสต๊อก";
+        this.showErrorModal = true;
+      }
     }
   },
 };

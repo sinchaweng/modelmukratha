@@ -9,13 +9,15 @@ const DashboardView = {
                 <p class="text-slate-400 text-xs font-bold uppercase mb-1">วัตถุดิบในคลังทั้งหมด</p>
                 <p class="text-4xl font-black text-slate-800 font-mono">{{ activeStockData.length }} <span class="text-sm font-normal text-slate-400">รายการ</span></p>
             </div>
+            
             <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-red-500 text-left hover:shadow-md transition">
                 <p class="text-slate-400 text-xs font-bold uppercase mb-1">มูลค่าของเสียสะสม (ทั้งหมด)</p>
                 <p class="text-4xl font-black text-red-600 font-mono">฿ {{ totalWasteCost.toLocaleString() }}</p>
             </div>
-            <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-green-500 text-left hover:shadow-md transition">
-                <p class="text-slate-400 text-xs font-bold uppercase mb-1">รายการวัตถุดิบที่ต้องสั่งเพิ่ม ⚠️</p>
-                <p class="text-4xl font-black text-green-600 font-mono">{{ lowStockCount }} <span class="text-sm font-normal text-slate-400">รายการ</span></p>
+            
+            <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-blue-500 text-left hover:shadow-md transition">
+                <p class="text-slate-400 text-xs font-bold uppercase mb-1">มูลค่าวัตถุดิบคงเหลือรวม</p>
+                <p class="text-4xl font-black text-blue-600 font-mono">฿ {{ totalInventoryValue.toLocaleString() }}</p>
             </div>
         </div>
 
@@ -65,24 +67,28 @@ const DashboardView = {
         }
     },
     computed: {
-        // [เพิ่มใหม่] กรองเฉพาะวัตถุดิบที่ Active (ไม่ถูกซ่อน) มาใช้คำนวณทั้งหมด
         activeStockData() {
             return this.stockData.filter(item => item.active !== false);
         },
         
         totalWasteCost() {
-            return this.wastageLogs.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
+            return this.wastageLogs
+                .filter(log => log.active !== false) 
+                .reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
         },
         
-        lowStockCount() {
-            // นับของใกล้หมด จากเฉพาะไอเทมที่ Active เท่านั้น
-            return this.activeStockData.filter(i => (Number(i.qty) || 0) <= (Number(i.min) || 0)).length;
+        // [เพิ่มใหม่] คำนวณมูลค่าคงเหลือในคลัง (จำนวนที่เหลือ * ราคาต้นทุน)
+        totalInventoryValue() {
+            return this.activeStockData.reduce((sum, item) => {
+                const qty = Number(item.qty) || 0;
+                const price = Number(item.price) || 0;
+                return sum + (qty * price);
+            }, 0);
         },
         
         catStats() {
-            const totalItems = this.activeStockData.length; // ใช้ความยาวของ activeStockData
+            const totalItems = this.activeStockData.length; 
             return this.categories.map(c => {
-                // นับหมวดหมู่ เฉพาะจากไอเทมที่ Active
                 const count = this.activeStockData.filter(i => (i.cat === c || i.type === c)).length;
                 const percent = totalItems > 0 ? Math.round((count / totalItems) * 100) : 0;
                 return { name: c, count: count, percent: percent };
@@ -104,7 +110,8 @@ const DashboardView = {
                 chartData.push({ date: dateString, label: label, cost: 0, percent: 0 });
             }
 
-            this.wastageLogs.forEach(log => {
+            // [แก้ไข] กรองเฉพาะประวัติของเสียที่ไม่ได้ถูกลบ (active !== false) มาแสดงในกราฟด้วย
+            this.wastageLogs.filter(log => log.active !== false).forEach(log => {
                 if (!log.date) return;
                 const logDate = log.date.split('T')[0];
                 const targetDay = chartData.find(d => d.date === logDate);
