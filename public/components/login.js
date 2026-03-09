@@ -11,48 +11,54 @@ const LoginView = {
             }
         }
     },
-    template: `
-    <div class="min-h-screen flex items-center justify-center bg-[#cc3f38] animate-in fade-in duration-500 relative">
-        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md z-10">
-            <div class="text-center mb-8">
-                <div class="inline-block p-4 bg-[#fcdd80] rounded-full mb-4 shadow-sm">
-                    <i class="fas fa-user-shield text-4xl text-[#cc3f38]"></i>
-                </div>
-                <h2 class="text-3xl font-bold text-slate-800">เข้าสู่ระบบ</h2>
-                <p class="text-slate-500">กรุณาเข้าสู่ระบบเพื่อจัดการร้าน</p>
-            </div>
-            <div class="space-y-5">
-                
-                <input v-model="email" @keyup.enter="handleLogin" type="email" placeholder="อีเมล (Email)" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none transition-all font-medium text-slate-700">
-                
-                <input v-model="password" @keyup.enter="handleLogin" type="password" placeholder="รหัสผ่าน" class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none transition-all font-medium text-slate-700">
-                
-                <button @click="handleLogin" :disabled="isLoading" class="w-full py-4 bg-[#cc3f38] text-white font-bold rounded-xl shadow-lg hover:brightness-90 transition transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                    <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
-                    {{ isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ' }}
-                </button>
-                
-            </div>
-        </div>
+ template: `
+<div class="min-h-screen flex items-center justify-center md:justify-end relative overflow-hidden font-kanit">
+    
+    <div class="absolute inset-0 z-0">
+        <img src="img/shabubg.png" 
+             class="w-full h-full object-cover object-center" 
+             alt="ลงหม้อสุกี้ Background">
+        <div class="absolute inset-0 bg-gradient-to-l from-black/80 via-black/30 to-transparent"></div>
+    </div>
 
-        <div v-if="alertModal.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-amber-500 p-6 text-white text-center">
-                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                        <i class="fas fa-exclamation-circle text-2xl"></i>
-                    </div>
-                    <h3 class="text-lg font-black uppercase italic tracking-tighter">{{ alertModal.title }}</h3>
+    <div class="relative z-10 w-full max-w-md mx-4 md:mr-28 animate-in slide-in-from-right-10 duration-700">
+        <div class="bg-white/70 backdrop-blur-xl p-10 rounded-[3rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)] border border-white/40 text-center">
+            
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-[#cc3f38] rounded-[1.2rem] mb-4 shadow-lg shadow-red-900/20">
+                    <i class="fas fa-fire-alt text-3xl text-white"></i>
                 </div>
-                <div class="p-6 text-center text-slate-600 font-medium">
-                    {{ alertModal.message }}
-                </div>
-                <div class="p-4 bg-slate-50 border-t border-slate-100">
-                    <button @click="alertModal.show = false" class="w-full py-3 bg-slate-800 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition">เข้าใจแล้ว</button>
-                </div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight mb-1">ลงหม้อสุกี้</h2>
+                <p class="text-slate-600 font-medium text-sm italic">ระบบจัดการร้าน (คลองหก)</p>
             </div>
+
+            <div class="space-y-4">
+                <div class="relative">
+                    <i class="fas fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input v-model="email" @keyup.enter="handleLogin" type="email" placeholder="อีเมลผู้ใช้งาน" 
+                        class="w-full pl-12 pr-6 py-4 bg-black/5 border border-white/20 focus:bg-white/40 rounded-2xl outline-none transition-all font-medium text-slate-800 placeholder:text-slate-500">
+                </div>
+                
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input v-model="password" @keyup.enter="handleLogin" type="password" placeholder="รหัสผ่าน" 
+                        class="w-full pl-12 pr-6 py-4 bg-black/5 border border-white/20 focus:bg-white/40 rounded-2xl outline-none transition-all font-medium text-slate-800 placeholder:text-slate-500">
+                </div>
+                
+                <button @click="handleLogin" :disabled="isLoading" 
+                    class="w-full py-4 bg-[#cc3f38] hover:bg-[#b03630] text-white font-bold rounded-2xl shadow-xl shadow-red-900/40 transition-all transform active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3 mt-6">
+                    <i v-if="isLoading" class="fas fa-circle-notch fa-spin text-lg"></i>
+                    <span class="text-lg">{{ isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบหลังบ้าน' }}</span>
+                </button>
+            </div>
+
+            <p class="mt-10 text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
+                LongMor Suki Admin Panel
+            </p>
         </div>
     </div>
-    `,
+    </div>
+`,
     methods: {
         // ฟังก์ชันเก็บ Log กิจกรรม
         logActivity(userEmail, action, details) {
