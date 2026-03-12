@@ -29,7 +29,7 @@ const LoginView = {
                 <i class="fas fa-user-cog text-3xl text-white"></i>
                 </div>
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight mb-1">ลงหม้อสุกี้</h2>
-                <p class="text-slate-600 font-medium text-sm italic">ระบบจัดการร้าน (คลองหก)</p>
+                <p class="text-slate-600 font-medium text-sm">ระบบจัดการร้าน (คลองหก)</p>
             </div>
 
             <div class="space-y-4">

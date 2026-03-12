@@ -1,26 +1,24 @@
 const ManageUserView = {
   template: `
-    <div class="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-slate-800">จัดการผู้ใช้งานระบบ</h2>
-                <p class="text-sm text-slate-500 mt-1">เพิ่ม/แก้ไข บัญชีสำหรับเข้าสู่ระบบ</p>
+  <section class="w-full text-left animate-in fade-in duration-500">
+        <div class="flex justify-between items-center mb-8 border-b pb-6">
+            <div class="text-left">
+                <h2 class="text-3xl font-bold text-slate-800">จัดการผู้ใช้งานระบบ</h2>
             </div>
-            <button @click="openModal()" class="bg-[#fcdd80] text-[#cc3f38] px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-orange-100 hover:brightness-95 transition flex items-center gap-2">
-                <i class="fas fa-plus "></i> เพิ่มผู้ใช้งาน
+            <button @click="openModal()" class="bg-[#fcdd80] text-[#cc3f38] px-5 py-2 rounded-xl font-bold shadow-lg shadow-orange-100 hover:brightness-95 transition flex items-center gap-2">
+                 <i class="fas fa-plus-circle"></i> เพิ่มผู้ใช้งาน
             </button>
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex-1">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-sm">
-                            <th class="p-5 font-semibold">อีเมล (Email) / บัญชี</th>
-                            <th class="p-5 font-semibold">ชื่อ-นามสกุล</th>
-                            <th class="p-5 font-semibold">ตำแหน่งสิทธิ์</th>
-                            <th class="p-5 font-semibold text-center">สถานะ</th>
-                            <th class="p-5 font-semibold text-center">จัดการ</th>
+                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase font-bold border-b">
+                            <th class="p-5 font-semibold text-slate-600">อีเมล (Email) / บัญชี</th>
+                            <th class="p-5 font-semibold text-slate-600">ชื่อ-นามสกุล</th>
+                            <th class="p-5 font-semibold text-slate-600">ตำแหน่งสิทธิ์</th>
+                            <th class="p-5 font-semibold text-slate-600 text-center">สถานะ</th>
+                            <th class="p-5 font-semibold text-slate-600 text-center">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -38,12 +36,12 @@ const ManageUserView = {
                                 </button>
                             </td>
                             <td class="p-5 text-center space-x-2">
-                                <button @click="openModal(user)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"><i class="fas fa-edit text-xs"></i></button>
-                                <button @click="deleteUser(user)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-trash text-xs"></i></button>
+                                <button @click="openModal(user)" class="text-slate-600 hover:text-blue-600 p-1.5 transition"><i class="fas fa-edit text-xs"></i></button>
+                                <button @click="deleteUser(user)" class="text-slate-600 hover:text-red-500 p-1.5 transition"><i class="fas fa-trash-alt text-xs"></i></button>
                             </td>
                         </tr>
                         <tr v-if="activeUsers.length === 0">
-                            <td colspan="5" class="p-10 text-center text-slate-400 font-bold">กำลังโหลดข้อมูล หรือ ไม่พบผู้ใช้งาน...</td>
+                            <td colspan="5" class="p-10 text-center text-slate-600 font-bold">กำลังโหลดข้อมูล หรือ ไม่พบผู้ใช้งาน...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -54,32 +52,32 @@ const ManageUserView = {
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
                 <div class="bg-[#cc3f38] p-5 flex justify-between items-center text-white">
                     <h3 class="font-bold text-lg"><i class="fas" :class="isEditing ? 'fa-user-edit' : 'fa-user-plus'"></i> {{ isEditing ? 'แก้ไขสิทธิ์ผู้ใช้' : 'เพิ่มผู้ใช้งานใหม่' }}</h3>
-                    <button @click="closeModal" class="hover:text-orange-200 text-xl"><i class="fas fa-times"></i></button>
+                    <button @click="closeModal"  class="text-white hover:rotate-90 transition text-2xl font-bold px-2">&times;</button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ชื่อ-นามสกุล พนักงาน</label>
+                        <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">ชื่อ-นามสกุล พนักงาน</label>
                         <input v-model="form.name" type="text" placeholder="ระบุชื่อพนักงาน" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none font-bold text-slate-700">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">อีเมล (ใช้สำหรับ Log in)</label>
+                        <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">อีเมล (ใช้สำหรับ Log in)</label>
                         <input v-model="form.email" type="email" :disabled="isEditing" placeholder="example@email.com" :class="isEditing ? 'opacity-50 cursor-not-allowed' : ''" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none">
                     </div>
                     <div v-if="!isEditing"> 
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ตั้งรหัสผ่านชั่วคราว (ขั้นต่ำ 6 ตัว)</label>
+                        <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">ตั้งรหัสผ่านชั่วคราว (ขั้นต่ำ 6 ตัว)</label>
                         <input v-model="form.password" type="password" placeholder="******" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">กำหนดสิทธิ์ (Role)</label>
+                        <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">กำหนดสิทธิ์ (Role)</label>
                         <select v-model="form.role" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700">
                             <option value="Admin">ผู้ดูแลระบบ (Admin) - จัดการได้ทุกหน้า</option>
                             <option value="Staff">พนักงาน (Staff) - สต๊อก/ของเสีย</option>
                         </select>
                     </div>
                 </div>
-                <div class="p-5 bg-slate-50 flex justify-end gap-3 border-t">
-                    <button @click="closeModal" class="px-5 py-3 text-slate-400 font-bold hover:text-slate-600 transition text-xs uppercase tracking-widest">ยกเลิก</button>
-                    <button @click="saveUser" :disabled="isLoading" class="px-8 py-3 bg-[#cc3f38] text-white font-bold rounded-2xl shadow-lg hover:bg-red-800 transition text-xs uppercase tracking-widest disabled:opacity-50 flex items-center gap-2">
+                <div class="p-5 bg-slate-50 flex justify-center gap-3 border-t">
+                    <button @click="closeModal" class="flex-1 max-w-[160px] py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="saveUser" :disabled="isLoading" class="flex-1 max-w-[160px] py-3 bg-[#cc3f38] text-white font-bold rounded-2xl shadow-lg hover:bg-red-800 transition text-sm uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
                         <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
                         {{ isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล' }}
                     </button>
@@ -94,14 +92,14 @@ const ManageUserView = {
                         <i v-if="confirmationModal.type === 'danger'" class="fas fa-exclamation-triangle text-2xl"></i>
                         <i v-else class="fas fa-exclamation-circle text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-black uppercase italic tracking-tighter">{{ confirmationModal.title }}</h3>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">{{ confirmationModal.title }}</h3>
                 </div>
                 <div class="p-8 text-center">
                     <p class="text-slate-600 font-medium">{{ confirmationModal.message }}</p>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
-                    <button @click="confirmationModal.show = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
-                    <button @click="confirmationModal.confirmAction" :class="confirmationModal.type === 'danger' ? 'bg-red-600 shadow-lg shadow-red-200 hover:bg-red-700' : 'bg-slate-900 hover:opacity-90'" class="flex-1 py-3 text-white font-bold rounded-2xl shadow-lg transition text-xs uppercase tracking-widest">ยืนยัน</button>
+                    <button @click="confirmationModal.show = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="confirmationModal.confirmAction" :class="confirmationModal.type === 'danger' ? 'bg-red-600 shadow-lg shadow-red-200 hover:bg-red-700' : 'bg-slate-900 hover:opacity-90'" class="flex-1 py-3 text-white font-bold rounded-2xl shadow-lg transition text-sm uppercase tracking-widest">ยืนยัน</button>
                 </div>
             </div>
         </div>
@@ -113,7 +111,7 @@ const ManageUserView = {
                 <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-exclamation-circle text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-black uppercase italic">ข้อมูลไม่ครบถ้วน</h3>
+                <h3 class="text-lg font-black uppercase">ข้อมูลไม่ครบถ้วน</h3>
             </div>
             <div class="p-6 text-center text-slate-600 font-medium">
                 {{ errorMessage }}

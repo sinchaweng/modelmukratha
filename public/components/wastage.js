@@ -4,7 +4,7 @@ const WastageView = {
         <h2 class="text-3xl font-bold text-slate-800 mb-8">จัดการของเสีย / ความเสียหาย</h2>
         
         <div class="bg-white p-8 rounded-3xl shadow-sm border mb-8">
-            <h3 class="font-bold text-slate-700 mb-6 italic"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>บันทึกของเสียใหม่</h3>
+            <h3 class="font-bold text-slate-700 mb-6"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>บันทึกของเสียใหม่</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 
                 <select v-model="form.itemId" class="p-3 border rounded-xl outline-none focus:border-red-500 font-bold text-slate-700 bg-white">
@@ -26,31 +26,31 @@ const WastageView = {
 
         <div class="bg-white rounded-3xl shadow-sm border overflow-hidden">
             <table class="w-full text-left">
-                <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase font-bold border-b">
                     <tr>
-                        <th class="p-5">วัน-เวลาที่บันทึก</th>
-                        <th class="p-5">รายการวัตถุดิบ</th>
-                        <th class="p-5">จำนวนที่เสีย</th>
-                        <th class="p-5">สาเหตุ</th>
-                        <th class="p-5 text-right">มูลค่าความเสียหาย</th>
-                        <th class="p-5 text-center">จัดการ</th>
+                        <th class="p-5 font-semibold text-slate-600">วัน-เวลาที่บันทึก</th>
+                        <th class="p-5 font-semibold text-slate-600">รายการวัตถุดิบ</th>
+                        <th class="p-5 font-semibold text-slate-600 text-center">จำนวนที่เสีย</th>
+                        <th class="p-5 font-semibold text-slate-600 text-center">สาเหตุ</th>
+                        <th class="p-5 font-semibold text-slate-600 text-center">มูลค่าความเสียหาย</th>
+                        <th class="p-5 font-semibold text-slate-600 text-center">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="log in formattedLogs" :key="log.id" class="border-b hover:bg-red-50/50 transition">
-                        <td class="p-5 text-sm text-slate-500 font-mono">{{ log.displayDate }}</td>
+                    <tr v-for="log in formattedLogs" :key="log.id" class="border-b hover:bg-slate-50 transition">
+                        <td class="p-5 text-sm text-slate-700 font-mono">{{ log.displayDate }}</td>
                         <td class="p-5 font-bold text-slate-800">{{ log.itemName }}</td>
-                        <td class="p-5 font-bold text-red-600">{{ log.qty }} <span class="text-xs font-normal text-slate-400">{{ log.unit }}</span></td>
-                        <td class="p-5"><span class="text-slate-600 text-sm"><i class="fas fa-info-circle text-red-400 mr-1"></i>{{ log.reason }}</span></td>
-                        <td class="p-5 text-right font-black text-red-600">฿ {{ (log.cost || 0).toLocaleString() }}</td>
+                        <td class="p-5 text-center font-bold text-red-600">{{ log.qty }} <span class="text-sm font-normal text-slate-600">{{ log.unit }}</span></td>
+                        <td class="p-5 text-center"><span class="text-slate-600 text-sm"><i class="fas fa-info-circle text-red-400 mr-1"></i>{{ log.reason }}</span></td>
+                        <td class="p-5 text-center font-black text-red-600">฿ {{ (log.cost || 0).toLocaleString() }}</td>
                         <td class="p-5 text-center">
-                            <button @click="removeLog(log)" class="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition">
+                            <button @click="removeLog(log)" class="text-slate-600 hover:text-red-500 p-2 transition">
                                 <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         </td>
                     </tr>
                     <tr v-if="formattedLogs.length === 0">
-                        <td colspan="6" class="p-10 text-center text-slate-400 font-bold">ยังไม่มีประวัติการบันทึกของเสีย</td>
+                        <td colspan="6" class="p-10 text-center text-slate-600 font-bold">ยังไม่มีประวัติการบันทึกของเสีย</td>
                     </tr>
                 </tbody>
             </table>
@@ -62,11 +62,11 @@ const WastageView = {
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-triangle text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการตัดสต็อกเสีย</h3>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">ยืนยันการตัดสต็อกเสีย</h3>
                 </div>
                 
                 <div class="p-8 text-center" v-if="pendingData">
-                    <p class="text-slate-500 text-sm mb-1">วัตถุดิบที่เสียหาย:</p>
+                    <p class="text-slate-700 text-sm mb-1">วัตถุดิบที่เสียหาย:</p>
                     <div class="text-2xl font-bold text-slate-800 mb-2">{{ pendingData.itemName }}</div>
                     <div class="bg-red-50 text-red-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
                         ⚠️ จำนวน {{ pendingData.qty }} {{ pendingData.unit }} มูลค่า ฿{{ pendingData.cost.toLocaleString() }}
@@ -74,8 +74,8 @@ const WastageView = {
                 </div>
 
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
-                    <button @click="showConfirmModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
-                    <button @click="executeSave" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยัน</button>
+                    <button @click="showConfirmModal = false" class="flex-1 py-3 bg-slate-200 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-300 transition">ยกเลิก</button>
+                    <button @click="executeSave" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-sm uppercase tracking-widest">ยืนยัน</button>
                 </div>
             </div>
         </div>
@@ -86,23 +86,23 @@ const WastageView = {
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-triangle text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-black uppercase italic tracking-tighter">ยกเลิกรายการนี้?</h3>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">ยกเลิกรายการนี้?</h3>
                 </div>
                 <div class="p-8 text-center" v-if="itemToDelete">
-                    <p class="text-slate-500 text-sm mb-1">ต้องการยกเลิกประวัติของเสีย:</p>
+                    <p class="text-slate-700 text-sm mb-1">ต้องการยกเลิกประวัติของเสีย:</p>
                     <div class="text-xl font-bold text-slate-800 mb-2">{{ itemToDelete.itemName }} ({{ itemToDelete.qty }} {{ itemToDelete.unit }})</div>
                     <div class="bg-orange-50 text-orange-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest mb-4">
                         ℹ️ ระบบจะทำการคืนสต๊อกกลับเข้าคลังให้โดยอัตโนมัติ
                     </div>
                     
                     <div class="text-left mt-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">ระบุเหตุผลที่ยกเลิก <span class="text-red-500">*</span></label>
+                        <label class="text-[10px] font-bold text-slate-600 uppercase mb-1 block">ระบุเหตุผลที่ยกเลิก <span class="text-red-500">*</span></label>
                         <input v-model="deleteReason" @keyup.enter="confirmDelete" type="text" placeholder="เช่น บันทึกผิด, ใส่จำนวนผิด..." class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none focus:border-red-500 text-sm transition font-medium text-slate-700 bg-slate-50">
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
-                    <button @click="showDeleteModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ปิด</button>
-                    <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยันการยกเลิก</button>
+                    <button @click="showDeleteModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ปิด</button>
+                    <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-sm uppercase tracking-widest">ยืนยันการยกเลิก</button>
                 </div>
             </div>
         </div>
@@ -113,7 +113,7 @@ const WastageView = {
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-circle text-2xl"></i>
                     </div>
-                    <h3 class="text-lg font-black uppercase italic">แจ้งเตือนจากระบบ</h3>
+                    <h3 class="text-lg font-black uppercase">แจ้งเตือนจากระบบ</h3>
                 </div>
                 <div class="p-6 text-center text-slate-600 font-medium">
                     {{ errorMessage }}

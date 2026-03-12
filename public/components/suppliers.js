@@ -56,16 +56,16 @@ const SupplierView = {
                         <i class="fas fa-building text-orange-600 text-xl"></i>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black bg-slate-50 px-3 py-1.5 rounded-full text-slate-500 border border-slate-200 uppercase tracking-tighter shadow-sm">
+                        <span class="text-[10px] font-black bg-slate-50 px-3 py-1.5 rounded-full text-slate-600 border border-slate-200 uppercase tracking-tighter shadow-sm">
                             {{ s.productCat }}
                         </span>
-                        <button @click="removeSupplier(s.id)" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100">
+                        <button @click="removeSupplier(s.id)" class="p-2 text-slate-600 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
                 </div>
                 <h4 class="font-black text-xl text-slate-800 mb-1">{{ s.name }}</h4>
-                <p class="text-slate-400 text-sm mb-6 flex items-center gap-2 font-medium">
+                <p class="text-slate-600 text-sm mb-6 flex items-center gap-2 font-medium">
                     <i class="fas fa-phone-alt text-xs"></i> {{ s.contact }}
                 </p>
                 <div class="flex gap-2">
@@ -77,31 +77,31 @@ const SupplierView = {
                     </button>
                 </div>
             </div>
-            <div v-if="activeSuppliers.length === 0" class="col-span-full text-center py-10 text-slate-400 font-bold">
+            <div v-if="activeSuppliers.length === 0" class="col-span-full text-center py-10 text-slate-600 font-bold">
                 ยังไม่มีข้อมูลคู่ค้า กรุณากดเพิ่มคู่ค้าใหม่
             </div>
         </div>
 
         <div v-if="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-900 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase tracking-tighter">
+                <div class="bg-slate-900 p-6 text-white text-lg font-bold flex justify-between items-center uppercase tracking-tighter">
                     <span>
                         <i class="fas" :class="editingId !== null ? 'fa-edit text-blue-400' : 'fa-truck-loading text-orange-500'"></i> 
                         {{ editingId !== null ? ' แก้ไขข้อมูลคู่ค้า' : ' ลงทะเบียนคู่ค้าใหม่' }}
                     </span>
-                    <button @click="showModal = false" class="text-slate-400 hover:text-white text-2xl transition hover:rotate-90">&times;</button>
+                    <button @click="showModal = false" class="text-slate-600 hover:text-white text-2xl transition hover:rotate-90">&times;</button>
                 </div>
                 <div class="p-8 space-y-6">
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block tracking-widest">ชื่อร้านคู่ค้า / บริษัท</label>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">ชื่อร้านคู่ค้า / บริษัท</label>
                         <input v-model="form.name" type="text" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition text-slate-800 font-bold text-lg" placeholder="ระบุชื่อบริษัท">
                     </div>
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block tracking-widest">เบอร์โทรศัพท์ติดต่อ</label>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">เบอร์โทรศัพท์ติดต่อ</label>
                         <input v-model="form.contact" type="text" maxlength="10" @input="form.contact = form.contact.replace(/[^0-9]/g, '')" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition text-slate-700 font-mono" placeholder="08X-XXX-XXXX">
                     </div>
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block tracking-widest">หมวดหมู่สินค้าหลัก</label>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">หมวดหมู่สินค้าหลัก</label>
                         <select v-model="form.productCat" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition bg-white text-slate-700 font-bold text-sm cursor-pointer">
                             <option value="" disabled>กรุณาเลือกหมวดหมู่</option>
                             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
@@ -109,8 +109,8 @@ const SupplierView = {
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showModal = false" class="flex-1 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition">ยกเลิก</button>
-                    <button @click="saveSupplier" class="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:bg-orange-700 transition uppercase text-xs tracking-widest transform active:scale-95">
+                    <button @click="showModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="saveSupplier" class="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:bg-orange-700 transition uppercase text-sm tracking-widest transform active:scale-95">
                         {{ editingId !== null ? 'ยืนยันการแก้ไข' : 'บันทึกข้อมูล' }}
                     </button>
                 </div>
@@ -119,17 +119,17 @@ const SupplierView = {
         
         <div v-if="showCatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-60">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center italic uppercase tracking-tighter">
+                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase tracking-tighter">
                     <span><i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่</span>
                     <button @click="showCatModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
                 </div>
                 <div class="p-8">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
+                    <label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
                     <input v-model="newCatName" @keyup.enter="saveCategory" type="text" placeholder="เช่น ผักสด, เครื่องปรุง..." class="w-full border-b-2 p-2 outline-none focus:border-slate-800 font-bold text-lg transition">
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showCatModal = false" class="flex-1 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition">ยกเลิก</button>
-                    <button @click="saveCategory" class="flex-1 py-3 bg-slate-800 text-white font-black rounded-2xl shadow-lg hover:bg-black transition uppercase text-xs tracking-widest">บันทึกหมวดหมู่</button>
+                    <button @click="showCatModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="saveCategory" class="flex-1 py-3 bg-slate-800 text-white font-black rounded-2xl shadow-lg hover:bg-black transition uppercase text-sm tracking-widest">บันทึกหมวดหมู่</button>
                 </div>
             </div>
         </div>
@@ -140,18 +140,18 @@ const SupplierView = {
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-triangle text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-black uppercase italic tracking-tighter">ยืนยันการนำออก?</h3>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">ยืนยันการนำออก?</h3>
                 </div>
                 <div class="p-8 text-center">
-                    <p class="text-slate-500 text-sm mb-1">คุณต้องการซ่อนข้อมูลคู่ค้านี้:</p>
+                    <p class="text-slate-700 text-sm mb-1">คุณต้องการซ่อนข้อมูลคู่ค้านี้:</p>
                     <div class="text-2xl font-bold text-slate-800 mb-2">{{ itemToDelete?.name }}</div>
                     <div class="bg-orange-50 text-orange-600 text-[10px] font-bold py-2 px-4 rounded-xl inline-block uppercase tracking-widest">
                         ข้อมูลที่ถูกลบจะหายไปจากระบบ
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
-                    <button @click="showDeleteModal = false" class="flex-1 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-100 rounded-2xl transition">ยกเลิก</button>
-                    <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-xs uppercase tracking-widest">ยืนยันนำออก</button>
+                    <button @click="showDeleteModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-sm uppercase tracking-widest">ยืนยันนำออก</button>
                 </div>
             </div>
         </div>
@@ -162,7 +162,7 @@ const SupplierView = {
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fas fa-exclamation-circle text-2xl"></i>
                     </div>
-                    <h3 class="text-lg font-black uppercase italic">{{ alertModal.title }}</h3>
+                    <h3 class="text-lg font-black uppercase">{{ alertModal.title }}</h3>
                 </div>
                 <div class="p-6 text-center text-slate-600 font-medium">
                     {{ alertModal.message }}

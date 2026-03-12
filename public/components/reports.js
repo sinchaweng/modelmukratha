@@ -15,9 +15,9 @@ const ReportView = {
     <section class="w-full animate-in fade-in duration-500">
         
         <div class="no-print">
-            <div class="flex justify-between items-end mb-8 border-b border-slate-100 pb-6">
+            <div class="flex justify-between items-end mb-8 border-b pb-6">
                 <div class="text-left">
-                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter">ศูนย์ข้อมูลและรายงานสารสนเทศ</h2>
+                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter">ระบบรายงาน</h2>
                 </div>
                 <button @click="printReport" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition-all flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95">
                     <i class="fas fa-print text-lg"></i> พิมพ์เอกสาร
@@ -26,17 +26,17 @@ const ReportView = {
 
             <div class="flex gap-3 mb-8 overflow-x-auto pb-2">
                 <button @click="activeTab = 'stock'" 
-                    :class="activeTab === 'stock' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'"
+                    :class="activeTab === 'stock' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 hover:bg-slate-50'"
                     class="px-6 py-3 rounded-2xl font-bold text-sm transition-all border flex items-center gap-2 whitespace-nowrap">
                     <i class="fas fa-boxes"></i> 1. รายงานสถานะสินค้าคงเหลือ
                 </button>
                 <button @click="activeTab = 'purchase'" 
-                    :class="activeTab === 'purchase' ? 'bg-orange-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'"
+                    :class="activeTab === 'purchase' ? 'bg-orange-600 text-white shadow-lg' : 'bg-white text-slate-700 hover:bg-slate-50'"
                     class="px-6 py-3 rounded-2xl font-bold text-sm transition-all border flex items-center gap-2 whitespace-nowrap">
                     <i class="fas fa-shopping-basket"></i> 2. รายงานสินค้าที่ต้องสั่งซื้อ
                 </button>
                 <button @click="activeTab = 'history'" 
-                    :class="activeTab === 'history' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'"
+                    :class="activeTab === 'history' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white text-slate-700 hover:bg-slate-50'"
                     class="px-6 py-3 rounded-2xl font-bold text-sm transition-all border flex items-center gap-2 whitespace-nowrap">
                     <i class="fas fa-history"></i> 3. รายงานสรุปการเคลื่อนไหวสินค้า
                 </button>
@@ -47,7 +47,7 @@ const ReportView = {
                 <div v-if="activeTab === 'stock'" class="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-white p-6 rounded-3xl border-l-[12px] border-l-blue-500 shadow-sm text-left">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">ต้นทุนวัตถุดิบที่เบิกจ่ายสะสม</p>
+                            <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1">ต้นทุนวัตถุดิบที่เบิกจ่ายสะสม</p>
                             <p class="text-4xl font-black text-slate-800 font-mono">฿ {{ totalUsageCost.toLocaleString() }}</p>
                         </div>
                         <div class="bg-white p-6 rounded-3xl border-l-[12px] border-l-red-500 shadow-sm text-left">
@@ -59,28 +59,28 @@ const ReportView = {
                         <h3 class="text-xl font-bold text-slate-700 mb-6 border-b pb-4 text-left flex items-center gap-3">
                             <i class="fas fa-clipboard-list text-blue-500"></i> ตารางรายการสถานะวัตถุดิบคงเหลือ
                         </h3>
-                        <table class="w-full text-left">
-                            <thead class="text-slate-400 border-b italic font-bold text-[11px] uppercase tracking-widest">
+                        <table class="w-full text-left bg-white">
+                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-200">
                                 <tr>
-                                    <th class="py-4 px-4 text-center w-16">ลำดับ</th>
-                                    <th class="py-4 px-4">ชื่อวัตถุดิบ / ประเภท</th>
-                                    <th class="py-4 px-4 text-center">ราคาต้นทุน</th>
-                                    <th class="py-4 px-4 text-right">คงเหลือในคลัง</th>
+                                    <th class="p-5 text-center w-16 font-semibold text-slate-600">ลำดับ</th>
+                                    <th class="p-5 text-left font-semibold text-slate-600">ชื่อวัตถุดิบ / ประเภท</th>
+                                    <th class="p-5 text-right font-semibold text-slate-600">ราคาต้นทุน</th>
+                                    <th class="p-5 text-right font-semibold text-slate-600">คงเหลือในคลัง</th>
                                 </tr>
                             </thead>
                             <tbody class="text-base font-medium">
-                                <tr v-for="(item, index) in activeStockData" :key="item.id" class="border-b border-slate-50 hover:bg-slate-50 transition">
-                                    <td class="py-5 px-4 text-center text-slate-400">{{ index + 1 }}</td>
-                                    <td class="py-5 px-4">
+                                <tr v-for="(item, index) in activeStockData" :key="item.id" class="border-b border-slate-200 bg-white hover:bg-slate-50 transition">
+                                    <td class="py-4 px-6 text-center text-slate-600">{{ index + 1 }}</td>
+                                    <td class="py-4 px-6 text-left">
                                         <div class="font-black text-slate-800">{{ item.name }}</div>
-                                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ item.cat || item.type }}</div>
+                                        <div class="text-[10px] text-slate-600 font-bold uppercase tracking-wider">{{ item.cat || item.type }}</div>
                                     </td>
-                                    <td class="py-5 px-4 text-center font-mono text-slate-500">฿{{ (Number(item.price) || 0).toLocaleString() }}</td>
-                                    <td class="py-5 px-4 text-right">
+                                    <td class="py-4 px-6 text-right font-mono text-slate-700">฿{{ (Number(item.price) || 0).toLocaleString() }}</td>
+                                    <td class="py-4 px-6 text-right">
                                         <span :class="Number(item.qty) <= Number(item.min) ? 'text-red-600 font-black' : 'text-slate-700 font-bold'" class="text-xl font-mono">
                                             {{ item.qty }}
                                         </span>
-                                        <span class="text-slate-400 text-[10px] font-bold uppercase ml-1">{{ item.unit }}</span>
+                                        <span class="text-slate-600 text-[10px] font-bold uppercase ml-1">{{ item.unit }}</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -88,36 +88,36 @@ const ReportView = {
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'purchase'" class="bg-white p-8 rounded-[2.5rem] border shadow-sm border-t-[12px] border-t-orange-500 animate-in slide-in-from-bottom-4 duration-300">
+                <div v-if="activeTab === 'purchase'" class="bg-white p-8 rounded-[2.5rem] border shadow-sm animate-in slide-in-from-bottom-4 duration-300">
                     <h3 class="text-xl font-bold text-orange-600 mb-6 border-b pb-4 text-left flex items-center gap-3">
                         <i class="fas fa-shopping-cart text-2xl"></i> ตารางรายการสั่งซื้อประจำวัน (ควรซื้อเพิ่ม)
                     </h3>
                     <div v-if="lowStock.length > 0">
-                        <table class="w-full">
-                            <thead class="text-slate-400 border-b italic font-bold text-[11px] uppercase tracking-widest">
+                        <table class="w-full bg-white">
+                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-200">
                                 <tr>
-                                    <th class="py-4 px-4 text-center w-16">ลำดับ</th>
-                                    <th class="py-4 px-4 text-left">รายการวัตถุดิบ</th>
-                                    <th class="py-4 px-4 text-center">จุดแจ้งเตือน</th>
-                                    <th class="py-4 px-4 text-right">จำนวนที่ต้องซื้ออย่างน้อย</th>
+                                    <th class="p-5 text-center w-16 font-semibold text-slate-600">ลำดับ</th>
+                                    <th class="p-5 text-left font-semibold text-slate-600">รายการวัตถุดิบ</th>
+                                    <th class="p-5 text-right font-semibold text-slate-600">จุดแจ้งเตือน</th>
+                                    <th class="p-5 text-right font-semibold text-slate-600">จำนวนที่ต้องซื้ออย่างน้อย</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(item, index) in lowStock" :key="item.id" class="border-b border-orange-50 bg-orange-50/20">
-                                    <td class="py-6 px-4 text-center text-slate-500">{{ index + 1 }}</td>
-                                    <td class="py-6 px-4">
-                                        <div class="font-black text-slate-800 text-lg">{{ item.name }}</div>
+                                <tr v-for="(item, index) in lowStock" :key="item.id" class="border-b border-slate-200 bg-white hover:bg-slate-50 transition">
+                                    <td class="py-4 px-6 text-center text-slate-600">{{ index + 1 }}</td>
+                                    <td class="py-4 px-6 text-left">
+                                        <div class="font-black text-slate-800 text-[16px]">{{ item.name }}</div>
                                     </td>
-                                    <td class="py-6 px-4 text-center font-bold text-orange-600">{{ item.min }} {{ item.unit }}</td>
-                                    <td class="py-6 px-4 text-right">
+                                    <td class="py-4 px-6 text-right font-bold text-orange-600">{{ item.min }} {{ item.unit }}</td>
+                                    <td class="py-4 px-6 text-right">
                                         <span class="text-red-600 font-black text-3xl font-mono">+ {{ (Number(item.min) - Number(item.qty)) + 1 }}</span>
-                                        <span class="text-slate-400 text-xs font-bold uppercase ml-2">{{ item.unit }}</span>
+                                        <span class="text-slate-600 text-xs font-bold uppercase ml-2">{{ item.unit }}</span>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div v-else class="py-24 text-center text-slate-200 italic font-bold text-xl">
+                    <div v-else class="py-24 text-center text-slate-200 font-bold text-xl">
                         สต๊อกปกติทุกรายการ ไม่ต้องซื้อเพิ่ม
                     </div>
                 </div>
@@ -128,40 +128,40 @@ const ReportView = {
                             <i class="fas fa-history text-emerald-500 text-2xl"></i> ประวัติความเคลื่อนไหวและกิจกรรม
                         </h3>
                         <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border">
-                            <label class="text-[9px] font-black text-slate-400 uppercase ml-2">ช่วงวันที่</label>
+                            <label class="text-[9px] font-black text-slate-600 uppercase ml-2">ช่วงวันที่</label>
                             <input type="date" v-model="startDate" class="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer">
-                            <span class="text-slate-300 text-[9px] font-black uppercase">ถึง</span>
+                            <span class="text-slate-600 text-[9px] font-black uppercase">ถึง</span>
                             <input type="date" v-model="endDate" class="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer">
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="text-slate-400 border-b italic font-bold text-[10px] uppercase tracking-widest">
+                        <table class="w-full text-left bg-white">
+                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-200">
                                 <tr>
-                                    <th class="py-4 px-4 text-center w-16">ลำดับ</th>
-                                    <th class="py-4 px-2 text-center">วัน / เวลา</th>
-                                    <th class="py-4 px-2 text-center">รายการ</th>
-                                    <th class="py-4 px-2 text-center">ประเภทกิจกรรม</th>
-                                    <th class="py-4 px-2 text-right pr-8">จำนวน</th>
+                                    <th class="p-5 text-center w-16 font-semibold text-slate-600">ลำดับ</th>
+                                    <th class="p-5 text-left font-semibold text-slate-600">วัน / เวลา</th>
+                                    <th class="p-5 text-left font-semibold text-slate-600">รายการ</th>
+                                    <th class="p-5 text-center font-semibold text-slate-600">ประเภทกิจกรรม</th>
+                                    <th class="p-5 text-right font-semibold text-slate-600">จำนวน</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(log, idx) in filteredHistory" :key="idx" class="border-b border-slate-50 hover:bg-slate-50 transition">
-                                    <td class="py-5 px-4 text-center text-slate-400">{{ idx + 1 }}</td>
-                                    <td class="py-5 px-2 text-slate-400 text-[11px] font-mono text-center">{{ log.displayDate }}</td>
-                                    <td class="py-5 px-2 font-black text-slate-800 text-center">{{ log.item }}</td>
-                                    <td class="py-5 px-2 text-center">
+                                <tr v-for="(log, idx) in filteredHistory" :key="idx" class="border-b border-slate-200 bg-white hover:bg-slate-50 transition">
+                                    <td class="py-4 px-6 text-center text-slate-600">{{ idx + 1 }}</td>
+                                    <td class="py-4 px-6 text-slate-700 text-[14px] font-mono text-left">{{ log.displayDate }}</td>
+                                    <td class="py-4 px-6 font-black text-slate-800 text-left">{{ log.item }}</td>
+                                    <td class="py-4 px-6 text-center">
                                         <span :class="log.type === 'in' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-orange-600 bg-orange-50 border-orange-100'" 
                                               class="px-4 py-1 rounded-full text-[10px] font-black uppercase border">
                                             {{ log.type === 'in' ? 'รับเข้า' : 'เบิกจ่าย' }}
                                         </span>
                                     </td>
-                                    <td class="py-5 px-2 text-right font-black text-2xl pr-8 font-mono" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
+                                    <td class="py-4 px-6 text-right font-black text-2xl font-mono" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
                                         {{ log.type === 'in' ? '+' : '-' }} {{ log.qty }}
                                     </td>
                                 </tr>
                                 <tr v-if="filteredHistory.length === 0">
-                                    <td colspan="5" class="py-24 text-center text-slate-300 italic font-bold">ไม่พบประวัติในช่วงวันที่ระบุ</td>
+                                    <td colspan="5" class="py-24 text-center text-slate-600 font-bold">ไม่พบประวัติในช่วงวันที่ระบุ</td>
                                 </tr>
                             </tbody>
                         </table>

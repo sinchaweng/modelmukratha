@@ -4,16 +4,18 @@ const ActivityLogView = {
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h2 class="text-3xl font-bold text-slate-800">ประวัติการใช้งานระบบ</h2>
-                <p class="text-sm text-slate-500 mt-1">ตรวจสอบการกระทำต่างๆ ของผู้ใช้ในระบบย้อนหลัง</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 no-print">
             <div class="relative">
-                <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
-                <input v-model="searchQuery" type="text" placeholder="ค้นหาชื่อผู้ใช้ หรือ รายละเอียด..." class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition text-sm font-medium">
+                <i class="fas fa-search absolute left-3 top-3 text-slate-600 text-sm"></i>
+                <input v-model="searchQuery" type="text" placeholder="ค้นหาชื่อผู้ใช้ หรือ รายละเอียด..." 
+                       class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition text-sm font-medium">
             </div>
-            <select v-model="filterModule" class="px-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none text-sm font-bold text-slate-600 cursor-pointer">
+
+            <select v-model="filterModule" 
+                    class="px-4 py-2 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium text-slate-600 cursor-pointer">
                 <option value="">ทุกระบบ (Modules)</option>
                 <option value="สต๊อกสินค้า">สต๊อกสินค้า (Inventory)</option>
                 <option value="คู่ค้า">คู่ค้า (Suppliers)</option>
@@ -21,36 +23,37 @@ const ActivityLogView = {
                 <option value="ผู้ใช้งาน">ผู้ใช้งาน (Users)</option>
                 <option value="ระบบล็อกอิน">ระบบล็อกอิน (Auth)</option>
             </select>
+
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex-1">
-            <div class="overflow-x-auto h-[600px] overflow-y-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse relative">
-                    <thead class="sticky top-0 bg-slate-100 z-10 shadow-sm">
-                        <tr class="text-slate-500 text-xs uppercase tracking-widest">
-                            <th class="p-5 font-black">วัน-เวลา</th>
-                            <th class="p-5 font-black">ผู้ใช้งาน</th>
-                            <th class="p-5 font-black">ระบบ</th>
-                            <th class="p-5 font-black">การกระทำ (Action)</th>
-                            <th class="p-5 font-black">รายละเอียด</th>
+            <div class="overflow-x-auto h-full overflow-y-auto custom-scrollbar">
+                <table class="w-full min-w-full text-left border-collapse relative">
+                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase font-bold border-b border-slate-200">
+                        <tr>
+                            <th class="p-5 font-semibold text-slate-600 text-left">วัน-เวลา</th>
+                            <th class="p-5 font-semibold text-slate-600 text-left">ผู้ใช้งาน</th>
+                            <th class="p-5 font-semibold text-slate-600 text-left">ระบบ</th>
+                            <th class="p-5 font-semibold text-slate-600 text-left">การกระทำ (Action)</th>
+                            <th class="p-5 font-semibold text-slate-600 text-left">รายละเอียด</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-50">
+                    <tbody class="divide-y divide-slate-100">
                         <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-slate-50 transition duration-150">
-                            <td class="p-5 text-sm text-slate-500 font-mono">{{ formatDateTime(log.timestamp) }}</td>
-                            <td class="p-5 font-bold text-slate-700">
-                                <i class="fas fa-user-circle text-slate-300 mr-1"></i> {{ log.userEmail || 'Unknown' }}
+                            <td class="p-4 text-sm text-slate-700">{{ formatDateTime(log.timestamp) }}</td>
+                            <td class="p-4 text-sm text-slate-800 font-semibold">
+                                <i class="fas fa-user-circle text-slate-500 mr-2"></i> {{ log.userEmail || 'Unknown' }}
                             </td>
-                            <td class="p-5 text-xs font-bold text-slate-500 uppercase">{{ log.module }}</td>
-                            <td class="p-5">
-                                <span :class="getActionColor(log.action)" class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center inline-flex gap-1.5 w-max">
+                            <td class="p-4 text-xs font-semibold text-slate-700 uppercase tracking-wide">{{ log.module }}</td>
+                            <td class="p-4">
+                                <span :class="[getActionColor(log.action), 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide']">
                                     <i :class="getActionIcon(log.action)"></i> {{ log.action }}
                                 </span>
                             </td>
-                            <td class="p-5 text-sm text-slate-600 font-medium">{{ log.details }}</td>
+                            <td class="p-4 text-sm text-slate-700 font-medium max-w-none break-words">{{ log.details }}</td>
                         </tr>
                         <tr v-if="filteredLogs.length === 0">
-                            <td colspan="5" class="p-10 text-center text-slate-400 font-bold">ไม่พบประวัติการใช้งานตามเงื่อนไขที่ค้นหา</td>
+                            <td colspan="5" class="p-10 text-center text-slate-600 font-bold">ไม่พบประวัติการใช้งานตามเงื่อนไขที่ค้นหา</td>
                         </tr>
                     </tbody>
                 </table>
