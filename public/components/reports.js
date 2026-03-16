@@ -1,17 +1,17 @@
 const ReportView = {
-    data() {
-        return {
-            activeTab: 'stock',
-            startDate: '',
-            endDate: new Date().toISOString().split('T')[0],
-            stockData: [],    
-            wastageLogs: [],
-            printDateLong: '',
-            printDateShort: '',
-            printUser: ''
-        }
-    },
-    template: `
+  data() {
+    return {
+      activeTab: "stock",
+      startDate: "",
+      endDate: new Date().toISOString().split("T")[0],
+      stockData: [],
+      wastageLogs: [],
+      printDateLong: "",
+      printDateShort: "",
+      printUser: "",
+    };
+  },
+  template: `
     <section class="w-full animate-in fade-in duration-500">
         
         <div class="no-print">
@@ -136,35 +136,52 @@ const ReportView = {
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left bg-white">
-                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-200">
-                                <tr>
-                                    <th class="p-5 text-center w-16 font-semibold text-slate-600">ลำดับ</th>
-                                    <th class="p-5 text-left font-semibold text-slate-600">วัน / เวลา</th>
-                                    <th class="p-5 text-left font-semibold text-slate-600">รายการ</th>
-                                    <th class="p-5 text-center font-semibold text-slate-600">ประเภทกิจกรรม</th>
-                                    <th class="p-5 text-right font-semibold text-slate-600">จำนวน</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(log, idx) in filteredHistory" :key="idx" class="border-b border-slate-200 bg-white hover:bg-slate-50 transition">
-                                    <td class="py-4 px-6 text-center text-slate-600">{{ idx + 1 }}</td>
-                                    <td class="py-4 px-6 text-slate-700 text-[14px] font-mono text-left">{{ log.displayDate }}</td>
-                                    <td class="py-4 px-6 font-black text-slate-800 text-left">{{ log.item }}</td>
-                                    <td class="py-4 px-6 text-center">
-                                        <span :class="log.type === 'in' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-orange-600 bg-orange-50 border-orange-100'" 
-                                              class="px-4 py-1 rounded-full text-[10px] font-black uppercase border">
-                                            {{ log.type === 'in' ? 'รับเข้า' : 'เบิกจ่าย' }}
-                                        </span>
-                                    </td>
-                                    <td class="py-4 px-6 text-right font-black text-2xl font-mono" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
-                                        {{ log.type === 'in' ? '+' : '-' }} {{ log.qty }}
-                                    </td>
-                                </tr>
-                                <tr v-if="filteredHistory.length === 0">
-                                    <td colspan="5" class="py-24 text-center text-slate-600 font-bold">ไม่พบประวัติในช่วงวันที่ระบุ</td>
-                                </tr>
-                            </tbody>
-                        </table>
+    <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-300">
+        <tr>
+            <th class="p-5 text-center w-16">ลำดับ</th>
+            <th class="p-5 text-left">วัน / เวลา</th>
+            <th class="p-5 text-left">รายการ</th>
+            <th class="p-5 text-center">ประเภท</th>
+            <th class="p-5 text-right">จำนวนหน่วย</th>
+            <th class="p-5 text-right">ราคา/หน่วย</th>
+            <th class="p-5 text-right">รวมเป็นเงิน</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr v-for="(log, idx) in filteredHistory" :key="idx" class="border-b border-slate-200 hover:bg-slate-50 transition">
+            <td class="py-4 px-6 text-center text-slate-600">{{ idx + 1 }}</td>
+            <td class="py-4 px-6 text-slate-700 text-[12px] font-mono">{{ log.displayDate }}</td>
+            <td class="py-4 px-6 font-black text-slate-800 text-left">
+                {{ log.item }}
+                <div class="text-[9px] text-slate-400 font-normal">{{ log.itemSku }}</div>
+            </td>
+            <td class="py-4 px-6 text-center">
+                <span :class="log.type === 'in' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-orange-600 bg-orange-50 border-orange-100'" 
+                      class="px-3 py-1 rounded-full text-[10px] font-black uppercase border">
+                    {{ log.type === 'in' ? 'รับเข้า' : 'เบิกจ่าย' }}
+                </span>
+            </td>
+            <td class="py-4 px-6 text-right font-bold" :class="log.type === 'in' ? 'text-blue-600' : 'text-orange-600'">
+                {{ log.type === 'in' ? '+' : '-' }} {{ log.qty }} <span class="text-[10px] text-slate-400 font-normal">{{ log.unitStr }}</span>
+            </td>
+            <td class="py-4 px-6 text-right font-mono text-slate-600 text-xs">฿{{ log.unitPrice.toLocaleString() }}</td>
+            <td class="py-4 px-6 text-right font-black font-mono" :class="log.type === 'in' ? 'text-blue-700' : 'text-orange-700'">
+                ฿{{ log.totalPrice.toLocaleString() }}
+            </td>
+        </tr>
+    </tbody>
+    <tfoot v-if="filteredHistory.length > 0" class="bg-slate-50 border-t-2 border-slate-300">
+    <tr>
+        <td colspan="6" class="p-5 text-right font-bold text-slate-700 text-lg">
+            สรุปมูลค่าความเคลื่อนไหวรวม:
+        </td>
+        <td class="p-5 text-right font-black">
+            <div class="text-blue-700 text-xl font-mono">รับเข้า: ฿{{ totalHistoryAmtIn.toLocaleString() }}</div>
+            <div class="text-orange-700 text-xl font-mono">เบิกจ่าย: ฿{{ totalHistoryAmtOut.toLocaleString() }}</div>
+        </td>
+    </tr>
+</tfoot>
+</table>
                     </div>
                 </div>
             </div>
@@ -248,32 +265,44 @@ const ReportView = {
 
                 <div v-if="activeTab === 'history'">
                     <table class="formal-table">
-                        <thead>
-                            <tr>
-                                <th class="col-index">ลำดับ</th>
-                                <th class="text-left">วัน/เวลา ที่ทำรายการ</th>
-                                <th class="text-left">รหัสอ้างอิง</th>
-                                <th class="text-left">ชื่อสินค้า</th>
-                                <th class="text-center">หน่วยนับ</th>
-                                <th class="text-right">ยอดรับเข้า</th>
-                                <th class="text-right">ยอดเบิกออก</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(log, idx) in filteredHistory" :key="idx">
-                                <td class="text-center">{{ idx + 1 }}</td>
-                                <td>{{ log.displayDate }}</td>
-                                <td>{{ log.itemSku || log.itemIdShort }}</td>
-                                <td>{{ log.item }}</td>
-                                <td class="text-center">{{ log.unitStr || '-' }}</td>
-                                <td class="text-right">{{ log.type === 'in' ? Number(log.qty).toLocaleString(undefined, {minimumFractionDigits: 2}) : '0.00' }}</td>
-                                <td class="text-right">{{ log.type === 'out' ? Number(log.qty).toLocaleString(undefined, {minimumFractionDigits: 2}) : '0.00' }}</td>
-                            </tr>
-                            <tr v-if="filteredHistory.length === 0">
-                                <td colspan="7" class="text-center">ไม่พบประวัติในช่วงวันที่ระบุ</td>
-                            </tr>
-                        </tbody>
-                    </table>
+    <thead>
+        <tr>
+            <th rowspan="2" class="col-index">ลำดับ</th>
+            <th rowspan="2" class="text-left">วัน/เวลา</th>
+            <th rowspan="2" class="text-left">ชื่อสินค้า</th>
+            <th colspan="2" class="text-center" style="border-bottom: 1px solid black;">จำนวนหน่วย</th>
+            <th colspan="2" class="text-center" style="border-bottom: 1px solid black;">มูลค่า (บาท)</th>
+        </tr>
+        <tr>
+            <th class="text-right">รับเข้า</th>
+            <th class="text-right">เบิกออก</th>
+            <th class="text-right">รับเข้า</th>
+            <th class="text-right">เบิกออก</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr v-for="(log, idx) in filteredHistory" :key="idx">
+            <td class="text-center">{{ idx + 1 }}</td>
+            <td style="font-size: 9pt;">{{ log.displayDate }}</td>
+            <td>{{ log.item }}</td>
+            <td class="text-right">{{ log.type === 'in' ? log.qty : '-' }}</td>
+            <td class="text-right">{{ log.type === 'out' ? log.qty : '-' }}</td>
+            <td class="text-right">{{ log.type === 'in' ? log.totalPrice.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-' }}</td>
+            <td class="text-right">{{ log.type === 'out' ? log.totalPrice.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-' }}</td>
+        </tr>
+        <tr style="border-top: 2px solid black; font-weight: bold; background-color: #f8fafc;">
+    <td colspan="5" class="text-right" style="padding: 12px; font-size: 11pt;">
+        ยอดรวมมูลค่าสุทธิ (บาท)
+    </td>
+    <td class="text-right" style="padding: 12px; font-size: 11pt;">
+        {{ totalHistoryAmtIn.toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+    </td>
+    <td class="text-right" style="padding: 12px; font-size: 11pt;">
+        {{ totalHistoryAmtOut.toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+    </td>
+</tr>
+    </tbody>
+</table>
                 </div>
             </div>
 
@@ -357,90 +386,121 @@ const ReportView = {
         </component>
     </section>
     `,
-    mounted() {
-        db.collection("inventory").onSnapshot(snapshot => {
-            const items = [];
-            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-            this.stockData = items;
-        });
+  mounted() {
+    db.collection("inventory").onSnapshot((snapshot) => {
+      const items = [];
+      snapshot.forEach((doc) => items.push({ id: doc.id, ...doc.data() }));
+      this.stockData = items;
+    });
 
-        db.collection("wastage").onSnapshot(snapshot => {
-            const logs = [];
-            snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-            this.wastageLogs = logs;
-        });
+    db.collection("wastage").onSnapshot((snapshot) => {
+      const logs = [];
+      snapshot.forEach((doc) => logs.push({ id: doc.id, ...doc.data() }));
+      this.wastageLogs = logs;
+    });
+  },
+  computed: {
+    totalHistoryQtyIn() {
+      return this.filteredHistory
+        .filter((l) => l.type === "in")
+        .reduce((sum, l) => sum + Number(l.qty), 0);
     },
-    computed: {
-        getReportTitle() {
-            if (this.activeTab === 'stock') return 'รายงานสถานะสินค้าคงเหลือ';
-            if (this.activeTab === 'purchase') return 'รายงานสินค้าที่ต้องสั่งซื้อ';
-            if (this.activeTab === 'history') return 'รายงานสรุปการเคลื่อนไหวสินค้า';
-            return 'รายงานระบบคลังสินค้า';
-        },
-        activeStockData() {
-            return this.stockData.filter(item => item.active !== false);
-        },
-        totalUsageCost() {
-            let total = 0;
-            this.stockData.forEach(item => {
-                const totalOut = (item.history || []).filter(h => h.type === 'out').reduce((sum, h) => sum + Number(h.qty), 0);
-                total += (totalOut * (Number(item.price) || 0));
-            });
-            return total;
-        },
-        totalWasteCost() {
-            return this.wastageLogs.filter(log => log.active !== false).reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
-        },
-        lowStock() {
-            return this.activeStockData.filter(i => Number(i.qty) <= Number(i.min));
-        },
-        filteredHistory() {
-            let logs = [];
-            this.stockData.forEach(i => { 
-                (i.history || []).forEach(h => {
-                    const d = new Date(h.date);
-                    const formattedDate = !isNaN(d) ? d.toLocaleString('th-TH', { 
-                        year: 'numeric', month: 'short', day: 'numeric', 
-                        hour: '2-digit', minute:'2-digit' 
-                    }) : h.date;
-
-                    logs.push({ 
-                        ...h, 
-                        item: i.name, 
-                        itemSku: i.sku, 
-                        itemIdShort: i.id.substring(0, 8).toUpperCase(),
-                        unitStr: i.unit, 
-                        displayDate: formattedDate 
-                    });
-                }); 
-            });
-            
-            let result = logs.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            if (this.startDate) {
-                result = result.filter(log => {
-                    if (!log.date) return false;
-                    const logDate = new Date(log.date).toISOString().split('T')[0];
-                    return logDate >= this.startDate && logDate <= this.endDate;
-                });
-            }
-            return result;
-        }
+    totalHistoryQtyOut() {
+      return this.filteredHistory
+        .filter((l) => l.type === "out")
+        .reduce((sum, l) => sum + Number(l.qty), 0);
     },
-    methods: {
-        printReport() {
-            const user = firebase.auth().currentUser;
-            this.printUser = user ? user.email : 'ผู้ดูแลระบบ';
+    totalHistoryAmtIn() {
+      return this.filteredHistory
+        .filter((l) => l.type === "in")
+        .reduce((sum, l) => sum + (l.totalPrice || 0), 0);
+    },
+    totalHistoryAmtOut() {
+      return this.filteredHistory
+        .filter((l) => l.type === "out")
+        .reduce((sum, l) => sum + (l.totalPrice || 0), 0);
+    },
+    getReportTitle() {
+      if (this.activeTab === "stock") return "รายงานสถานะสินค้าคงเหลือ";
+      if (this.activeTab === "purchase") return "รายงานสินค้าที่ต้องสั่งซื้อ";
+      if (this.activeTab === "history") return "รายงานสรุปการเคลื่อนไหวสินค้า";
+      return "รายงานระบบคลังสินค้า";
+    },
+    activeStockData() {
+      return this.stockData.filter((item) => item.active !== false);
+    },
+    totalUsageCost() {
+      let total = 0;
+      this.stockData.forEach((item) => {
+        const totalOut = (item.history || [])
+          .filter((h) => h.type === "out")
+          .reduce((sum, h) => sum + Number(h.qty), 0);
+        total += totalOut * (Number(item.price) || 0);
+      });
+      return total;
+    },
+    totalWasteCost() {
+      return this.wastageLogs
+        .filter((log) => log.active !== false)
+        .reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
+    },
+    lowStock() {
+      return this.activeStockData.filter((i) => Number(i.qty) <= Number(i.min));
+    },
+    filteredHistory() {
+      let logs = [];
+      this.stockData.forEach((i) => {
+        (i.history || []).forEach((h) => {
+          const d = new Date(h.date);
+          const formattedDate = !isNaN(d)
+            ? d.toLocaleString("th-TH", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : h.date;
 
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear() + 543; 
-            this.printDateShort = `${day}/${month}/${year}`;
-            
-            setTimeout(() => {
-                window.print();
-            }, 100);
-        }
-    }
+          logs.push({
+            ...h,
+            item: i.name,
+            itemSku: i.sku,
+            itemIdShort: i.id.substring(0, 8).toUpperCase(),
+            unitStr: i.unit,
+            unitPrice: Number(i.price) || 0, // ดึงราคาต่อหน่วยมาเก็บไว้
+            totalPrice: Number(h.qty) * (Number(i.price) || 0), // คำนวณมูลค่ารวมของรายการนั้น
+            displayDate: formattedDate,
+          });
+        });
+      });
+
+      let result = logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      if (this.startDate) {
+        result = result.filter((log) => {
+          if (!log.date) return false;
+          const logDate = new Date(log.date).toISOString().split("T")[0];
+          return logDate >= this.startDate && logDate <= this.endDate;
+        });
+      }
+      return result;
+    },
+  },
+  methods: {
+    printReport() {
+      const user = firebase.auth().currentUser;
+      this.printUser = user ? user.email : "ผู้ดูแลระบบ";
+
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear() + 543;
+      this.printDateShort = `${day}/${month}/${year}`;
+
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    },
+  },
 };

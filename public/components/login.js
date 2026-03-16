@@ -57,6 +57,34 @@ const LoginView = {
             </p>
         </div>
     </div>
+
+    <div v-if="alertModal.show"
+ class="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-[9999]">
+
+  <div class="bg-white rounded-3xl p-8 w-[90%] max-w-md text-center shadow-2xl">
+
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 flex items-center justify-center bg-red-500 rounded-full text-white text-2xl">
+        <i class="fas fa-exclamation"></i>
+      </div>
+    </div>
+
+    <h3 class="text-2xl font-bold text-slate-800 mb-2">
+      {{ alertModal.title }}
+    </h3>
+
+    <p class="text-slate-600 mb-6">
+      {{ alertModal.message }}
+    </p>
+
+    <button
+      @click="alertModal.show = false"
+      class="w-full py-3 bg-[#cc3f38] hover:bg-[#b03630] text-white font-bold rounded-xl">
+      ตกลง
+    </button>
+
+  </div>
+</div>
     </div>
 `,
   methods: {
@@ -111,27 +139,26 @@ const LoginView = {
           this.isLoading = false;
           console.error("Login Error:", error.code);
 
-          // บันทึก Log กรณีล็อกอินพลาด
           this.logActivity(
             this.email,
             "ERROR",
             `พยายามเข้าสู่ระบบแต่ล้มเหลว (${error.code})`,
           );
 
-          // แปลง Error Code เป็นการแสดงผลแบบ Dialog สวยๆ
           if (error.code === "auth/invalid-email") {
             this.triggerAlert(
               "อีเมลไม่ถูกต้อง",
               "รูปแบบของอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง",
             );
+          } else if (error.code === "auth/user-not-found") {
+            this.triggerAlert("ไม่พบผู้ใช้งาน", "ไม่พบอีเมลนี้ในระบบ");
           } else if (
-            error.code === "auth/invalid-credential" ||
-            error.code === "auth/user-not-found" ||
-            error.code === "auth/wrong-password"
+            error.code === "auth/wrong-password" ||
+            error.code === "auth/invalid-credential"
           ) {
             this.triggerAlert(
-              "เข้าสู่ระบบล้มเหลว",
-              "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+              "รหัสผ่านไม่ถูกต้อง",
+              "กรุณาตรวจสอบรหัสผ่านแล้วลองใหม่อีกครั้ง",
             );
           } else if (error.code === "auth/too-many-requests") {
             this.triggerAlert(
