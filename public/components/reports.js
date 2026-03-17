@@ -94,7 +94,7 @@ const ReportView = {
                             <tbody v-for="group in paginatedGroupedStock" :key="group.name">
                                 <tr class="bg-slate-100">
                                     <td colspan="6" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
-                                         📁 หมวดหมู่: {{ group.name }}
+                                          หมวดหมู่: {{ group.name }}
                                     </td>
                                 </tr>
                                 <tr v-for="(item, index) in group.items" :key="item.id" class="border-b border-slate-200 hover:bg-slate-50 transition">
@@ -143,7 +143,7 @@ const ReportView = {
                             <tbody v-for="group in paginatedGroupedPurchase" :key="group.name">
                                 <tr class="bg-slate-100">
                                     <td colspan="4" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
-                                         📁 หมวดหมู่: {{ group.name }}
+                                          หมวดหมู่: {{ group.name }}
                                     </td>
                                 </tr>
                                 <tr v-for="(item, index) in group.items" :key="item.id" class="border-b border-orange-50 bg-orange-50/30 hover:bg-orange-100 transition">
@@ -195,7 +195,7 @@ const ReportView = {
                             <tbody v-for="group in paginatedGroupedHistory" :key="group.name">
                                 <tr class="bg-slate-100">
                                     <td colspan="6" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
-                                         📁 หมวดหมู่: {{ group.name }}
+                                          หมวดหมู่: {{ group.name }}
                                     </td>
                                 </tr>
                                 <tr v-for="(log, idx) in group.logs" :key="idx" class="border-b border-slate-200 hover:bg-slate-50 transition">
