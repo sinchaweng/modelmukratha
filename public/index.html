@@ -1,158 +1,284 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>ระบบจัดการสินค้าคงคลัง</title>
-    <link rel="icon" href="img/icon.png">
+    <link rel="icon" href="img/icon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
-        
-        /* บังคับฟอนต์ Kanit ทั้งระบบให้ขนาดพอดีคำ */
-        * {
-            font-family: 'Kanit', sans-serif !important;
-            -webkit-font-smoothing: antialiased;
-        }
+      @import url("https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap");
 
-        /* ป้องกันฟอนต์ไอคอนเพี้ยน */
-        .fas, .far, .fab, .fa-solid, .fa-regular {
-            font-family: "Font Awesome 6 Free" !important;
-            font-weight: 900;
-        }
+      /* บังคับฟอนต์ Kanit ทั้งระบบให้ขนาดพอดีคำ */
+      * {
+        font-family: "Kanit", sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+      }
 
-        body { background-color: #f8fafc; }
+      /* ป้องกันฟอนต์ไอคอนเพี้ยน */
+      .fas,
+      .far,
+      .fab,
+      .fa-solid,
+      .fa-regular {
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 900;
+      }
 
-        /* การตั้งค่าสำหรับการพิมพ์ (Print Settings) */
-        @media print {
-            .no-print { display: none !important; }
-            aside { display: none !important; }
-            main { 
-                margin-left: 0 !important; 
-                padding: 0 !important; 
-                width: 100% !important;
-            }
-            body { background-color: white !important; }
+      body {
+        background-color: #f8fafc;
+      }
+
+      /* การตั้งค่าสำหรับการพิมพ์ (Print Settings) */
+      @media print {
+        .no-print {
+          display: none !important;
         }
+        aside {
+          display: none !important;
+        }
+        main {
+          margin-left: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+        }
+        body {
+          background-color: white !important;
+        }
+      }
     </style>
-</head>
-<body class="bg-slate-50">
+  </head>
+  <body class="bg-slate-50">
     <div id="app">
-        <page-login v-if="currentPage === 'login'" @login-success="handleLogin"></page-login>
+      <page-login
+        v-if="currentPage === 'login'"
+        @login-success="handleLogin"
+      ></page-login>
 
-        <div v-else class="flex min-h-screen">
-            <aside class="w-64 bg-slate-900 text-white p-6 shadow-xl flex flex-col fixed h-full no-print">
-    <div class="flex flex-col items-center mb-10 border-b border-slate-800 pb-8">
-        <div class="relative group cursor-pointer">
-            <div class="absolute -inset-1 bg-gradient-to-r from-orange-600 to-yellow-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            
-            <img src="img/logo.jpg" alt="ลงหม้อ Logo" 
-                 class="relative w-28 h-28 rounded-full border-4 border-slate-800 shadow-2xl object-cover bg-white">
-        </div>
+      <div v-else class="flex min-h-screen">
+        <aside
+          class="w-64 bg-slate-900 text-white p-6 shadow-xl flex flex-col fixed h-full no-print"
+        >
+          <div
+            class="flex flex-col items-center mb-10 border-b border-slate-800 pb-8"
+          >
+            <div class="relative group cursor-pointer">
+              <div
+                class="absolute -inset-1 bg-gradient-to-r from-orange-600 to-yellow-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"
+              ></div>
 
-        <div class="mt-4 text-center">
-            <h1 class="text-2xl font-black tracking-tighter text-white uppercase">ลงหม้อสุกี้</h1>
-            <p class="text-[10px] font-bold text-orange-500 uppercase tracking-[0.3em] leading-none">LongMorSuki</p>
-        </div>
-    </div>
-
-    <nav class="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
-        <button v-if="userRole === 'Admin'" @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-chart-pie group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">แดชบอร์ดสรุปผล</span>
-        </button>
-        
-        <button @click="currentPage = 'stock'" :class="currentPage === 'stock' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-boxes group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">จัดการวัตถุดิบ</span>
-        </button>
-
-        <button @click="currentPage = 'wastage'" :class="currentPage === 'wastage' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-trash-alt group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">บันทึกของเสีย</span>
-        </button>
-
-        <button v-if="userRole === 'Admin'" @click="currentPage = 'suppliers'" :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-truck group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">ข้อมูลคู่ค้า</span>
-        </button>
-
-        <button v-if="userRole === 'Admin'" @click="currentPage = 'reports'" :class="currentPage === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-file-invoice group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">ระบบรายงาน</span>
-        </button>
-
-         <button v-if="userRole === 'Admin'" @click="currentPage = 'manageuser'" :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-users-cog group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">จัดการผู้ใช้งาน</span>
-        </button>
-
-        <button v-if="userRole === 'Admin'" @click="currentPage = 'activitylog'" :class="currentPage === 'activitylog' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'" class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group">
-            <i class="fas fa-history group-hover:scale-110 transition"></i> 
-            <span class="font-bold text-sm">ประวัติการใช้งาน</span>
-        </button>
-
-        <div class="pt-4 mt-4 border-t border-slate-800">
-            <div class="px-4 mb-3 text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">เข้าสู่ระบบโดย</p>
-                <p class="text-xs text-yellow-200 font-bold truncate">{{ currentUserEmail }}</p>
-                <span class="inline-block mt-1 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[9px] uppercase">{{ userRole }}</span>
+              <img
+                src="img/logo.jpg"
+                alt="ลงหม้อ Logo"
+                class="relative w-28 h-28 rounded-full border-4 border-slate-800 shadow-2xl object-cover bg-white"
+              />
             </div>
-            <button @click="showLogoutModal = true" class="flex items-center justify-center gap-2 w-full text-red-400 hover:bg-red-900/20 p-3 rounded-xl transition-all duration-200 group border border-red-900/30">
-                <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition"></i> 
-                <span class="font-bold text-sm">ออกจากระบบ</span>
+
+            <div class="mt-4 text-center">
+              <h1
+                class="text-2xl font-black tracking-tighter text-white uppercase"
+              >
+                ลงหม้อสุกี้
+              </h1>
+              <p
+                class="text-[10px] font-bold text-orange-500 uppercase tracking-[0.3em] leading-none"
+              >
+                LongMorSuki
+              </p>
+            </div>
+          </div>
+
+          <nav class="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <button
+              v-if="userRole === 'Admin'"
+              @click="currentPage = 'dashboard'"
+              :class="currentPage === 'dashboard' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-chart-pie group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">แดชบอร์ดสรุปผล</span>
             </button>
-        </div>
-    </nav>
-</aside>
 
-            <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
-                <component :is="'page-' + currentPage" 
-           :categories="categories" 
-           :units="units"
-           :user-role="userRole" @login-success="handleLogin" 
-           @add-category="addCategory" 
-           @add-unit="addUnit">
-                </component>
-            </main>
-        </div>
+            <button
+              @click="currentPage = 'stock'"
+              :class="currentPage === 'stock' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-boxes group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">จัดการวัตถุดิบ</span>
+            </button>
 
-        <div v-if="showLogoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] no-print">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div class="p-8 text-center">
-                    <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-sign-out-alt text-3xl"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800 mb-2">ยืนยันออกจากระบบ?</h3>
-                    <p class="text-slate-500 mb-8 text-sm">คุณต้องการออกจากระบบในขณะนี้หรือไม่?</p>
-                    <div class="flex gap-4">
-                        <button @click="showLogoutModal = false" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition text-sm">ยกเลิก</button>
-                        <button @click="confirmLogout" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 transition text-sm">ยืนยัน</button>
-                    </div>
-                </div>
+            <button
+              @click="currentPage = 'wastage'"
+              :class="currentPage === 'wastage' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-trash-alt group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">บันทึกของเสีย</span>
+            </button>
+
+            <button
+              v-if="userRole === 'Admin'"
+              @click="currentPage = 'suppliers'"
+              :class="currentPage === 'suppliers' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-truck group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">ข้อมูลคู่ค้า</span>
+            </button>
+
+            <button
+              v-if="userRole === 'Admin'"
+              @click="currentPage = 'reports'"
+              :class="currentPage === 'reports' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i
+                class="fas fa-file-invoice group-hover:scale-110 transition"
+              ></i>
+              <span class="font-bold text-sm">ระบบรายงาน</span>
+            </button>
+
+            <button
+              v-if="userRole === 'Admin'"
+              @click="currentPage = 'manageuser'"
+              :class="currentPage === 'manageuser' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-users-cog group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">จัดการผู้ใช้งาน</span>
+            </button>
+
+            <button
+              v-if="userRole === 'Admin'"
+              @click="currentPage = 'activitylog'"
+              :class="currentPage === 'activitylog' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'"
+              class="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl transition-all duration-200 group"
+            >
+              <i class="fas fa-history group-hover:scale-110 transition"></i>
+              <span class="font-bold text-sm">ประวัติการใช้งาน</span>
+            </button>
+
+            <div class="pt-4 mt-4 border-t border-slate-800">
+              <div class="px-4 mb-3 text-center">
+                <p
+                  class="text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                >
+                  เข้าสู่ระบบโดย
+                </p>
+                <p class="text-xs text-yellow-200 font-bold truncate">
+                  {{ currentUserEmail }}
+                </p>
+                <span
+                  class="inline-block mt-1 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[9px] uppercase"
+                  >{{ userRole }}</span
+                >
+              </div>
+              <button
+                @click="showLogoutModal = true"
+                class="flex items-center justify-center gap-2 w-full text-red-400 hover:bg-red-900/20 p-3 rounded-xl transition-all duration-200 group border border-red-900/30"
+              >
+                <i
+                  class="fas fa-sign-out-alt group-hover:-translate-x-1 transition"
+                ></i>
+                <span class="font-bold text-sm">ออกจากระบบ</span>
+              </button>
             </div>
-        </div>
+          </nav>
+        </aside>
 
-        <div v-if="globalAlert.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
-                <div class="bg-red-600 p-6 text-white text-center">
-                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                        <i class="fas fa-ban text-2xl"></i>
-                    </div>
-                    <h3 class="text-lg font-black uppercase tracking-tighter">{{ globalAlert.title }}</h3>
-                </div>
-                <div class="p-6 text-center text-slate-600 font-medium">
-                    {{ globalAlert.message }}
-                </div>
-                <div class="p-4 bg-slate-50 border-t border-slate-100">
-                    <button @click="globalAlert.show = false" class="w-full py-3 bg-slate-800 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition">รับทราบ</button>
-                </div>
+        <main class="flex-1 p-8 ml-64 overflow-y-auto print:ml-0 print:p-0">
+          <component
+            :is="'page-' + currentPage"
+            :categories="categories"
+            :units="units"
+            :user-role="userRole"
+            @login-success="handleLogin"
+            @add-category="addCategory"
+            @add-unit="addUnit"
+            @edit-category="editCategory"
+            @delete-category="deleteCategory"
+            @edit-unit="editUnit"
+            @delete-unit="deleteUnit"
+          >
+          </component>
+        </main>
+      </div>
+
+      <div
+        v-if="showLogoutModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] no-print"
+      >
+        <div
+          class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200"
+        >
+          <div class="p-8 text-center">
+            <div
+              class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-sign-out-alt text-3xl"></i>
             </div>
+            <h3 class="text-2xl font-bold text-slate-800 mb-2">
+              ยืนยันออกจากระบบ?
+            </h3>
+            <p class="text-slate-500 mb-8 text-sm">
+              คุณต้องการออกจากระบบในขณะนี้หรือไม่?
+            </p>
+            <div class="flex gap-4">
+              <button
+                @click="showLogoutModal = false"
+                class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition text-sm"
+              >
+                ยกเลิก
+              </button>
+              <button
+                @click="confirmLogout"
+                class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg hover:bg-red-700 transition text-sm"
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div
+        v-if="globalAlert.show"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+      >
+        <div
+          class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50"
+        >
+          <div class="bg-red-600 p-6 text-white text-center">
+            <div
+              class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner"
+            >
+              <i class="fas fa-ban text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-black uppercase tracking-tighter">
+              {{ globalAlert.title }}
+            </h3>
+          </div>
+          <div class="p-6 text-center text-slate-600 font-medium">
+            {{ globalAlert.message }}
+          </div>
+          <div class="p-4 bg-slate-50 border-t border-slate-100">
+            <button
+              @click="globalAlert.show = false"
+              class="w-full py-3 bg-slate-800 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition"
+            >
+              รับทราบ
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="config.js"></script>
@@ -165,196 +291,255 @@
     <script src="components/activitylog.js"></script>
     <script src="components/manageuser.js"></script>
 
-   <script>
-    const { createApp, ref, onMounted } = Vue;
-    
-    const app = createApp({
+    <script>
+      const { createApp, ref, onMounted } = Vue;
+
+      const app = createApp({
         setup() {
-            const currentPage = ref('login'); 
-            const showLogoutModal = ref(false);
-            const globalAlert = ref({ show: false, title: '', message: '' }); 
-            
-            const isSidebarOpen = ref(false);
-            
-            const currentUserEmail = ref('');
-            const userRole = ref(''); 
+          const currentPage = ref("login");
+          const showLogoutModal = ref(false);
+          const globalAlert = ref({ show: false, title: "", message: "" });
 
-            const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; 
-            let sessionTimer = null; 
+          const isSidebarOpen = ref(false);
 
-            const checkSession = () => {
-                const loginTime = localStorage.getItem('loginTimestamp');
+          const currentUserEmail = ref("");
+          const userRole = ref("");
+
+          const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
+          let sessionTimer = null;
+
+          const checkSession = () => {
+            const loginTime = localStorage.getItem("loginTimestamp");
+            if (loginTime) {
+              const timeElapsed = Date.now() - parseInt(loginTime, 10);
+              if (timeElapsed > SESSION_TIMEOUT_MS) {
+                firebase
+                  .auth()
+                  .signOut()
+                  .then(() => {
+                    globalAlert.value = {
+                      show: true,
+                      title: "หมดเวลาเข้าใช้งาน",
+                      message:
+                        "ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้ง",
+                    };
+                    localStorage.removeItem("loginTimestamp");
+                    sessionStorage.removeItem("isLogged");
+                    if (sessionTimer) clearInterval(sessionTimer);
+                  });
+              }
+            }
+          };
+
+          const categories = ref([
+            "เนื้อสัตว์",
+            "ผักสด",
+            "อาหารทะเล",
+            "ของใช้",
+            "เครื่องปรุง",
+            "เครื่องดื่ม",
+          ]);
+          const units = ref([
+            "กก.",
+            "ชิ้น",
+            "แกลลอน",
+            "ถุง",
+            "ขวด",
+            "แพ็ค",
+            "กระสอบ",
+            "แผง",
+          ]);
+          const inventory = ref([]);
+          const suppliers = ref([]);
+          const wastageLogs = ref([]);
+          const addCategory = (newCat) => {
+            if (newCat && !categories.value.includes(newCat)) {
+              categories.value.push(newCat);
+            }
+          };
+
+          const addUnit = (newUnit) => {
+            if (newUnit && !units.value.includes(newUnit)) {
+              units.value.push(newUnit);
+            }
+          };
+
+          const editCategory = (payload) => {
+            const idx = categories.value.indexOf(payload.old);
+            if (idx !== -1) categories.value[idx] = payload.new;
+          };
+
+          const deleteCategory = (cat) => {
+            categories.value = categories.value.filter((c) => c !== cat);
+          };
+
+          const editUnit = (payload) => {
+            const idx = units.value.indexOf(payload.old);
+            if (idx !== -1) units.value[idx] = payload.new;
+          };
+
+          const deleteUnit = (unit) => {
+            units.value = units.value.filter((u) => u !== unit);
+          };
+
+          const saveData = (newData) => {
+            inventory.value = newData;
+          };
+
+          onMounted(() => {
+            firebase.auth().onAuthStateChanged((user) => {
+              if (user) {
+                let loginTime = localStorage.getItem("loginTimestamp");
                 if (loginTime) {
-                    const timeElapsed = Date.now() - parseInt(loginTime, 10);
-                    if (timeElapsed > SESSION_TIMEOUT_MS) {
-                        firebase.auth().signOut().then(() => {
-                            globalAlert.value = {
-                                show: true,
-                                title: 'หมดเวลาเข้าใช้งาน',
-                                message: 'ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้ง'
-                            };
-                            localStorage.removeItem('loginTimestamp');
-                            sessionStorage.removeItem('isLogged');
-                            if(sessionTimer) clearInterval(sessionTimer);
-                        });
-                    }
+                  if (
+                    Date.now() - parseInt(loginTime, 10) >
+                    SESSION_TIMEOUT_MS
+                  ) {
+                    firebase.auth().signOut();
+                    return;
+                  }
+                } else {
+                  localStorage.setItem("loginTimestamp", Date.now().toString());
                 }
-            };
 
-            const categories = ref(['เนื้อสัตว์', 'ผักสด', 'อาหารทะเล', 'ของใช้', 'เครื่องปรุง', 'เครื่องดื่ม']);
-            const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค', 'กระสอบ', 'แผง']);
-            const inventory = ref([]);
-            const suppliers = ref([]);
-            const wastageLogs = ref([]);
+                if (sessionTimer) clearInterval(sessionTimer);
+                sessionTimer = setInterval(checkSession, 60000);
 
-            onMounted(() => {
-                firebase.auth().onAuthStateChanged((user) => {
-                    if (user) {
-                        let loginTime = localStorage.getItem('loginTimestamp');
-                        if (loginTime) {
-                            if (Date.now() - parseInt(loginTime, 10) > SESSION_TIMEOUT_MS) {
-                                firebase.auth().signOut(); 
-                                return;
-                            }
-                        } else {
-                            localStorage.setItem('loginTimestamp', Date.now().toString());
-                        }
+                currentUserEmail.value = user.email;
 
-                        if(sessionTimer) clearInterval(sessionTimer);
-                        sessionTimer = setInterval(checkSession, 60000);
+                db.collection("users")
+                  .where("email", "==", user.email)
+                  .get()
+                  .then((querySnapshot) => {
+                    if (!querySnapshot.empty) {
+                      const userData = querySnapshot.docs[0].data();
+                      userRole.value = userData.role || "Staff";
 
-                        currentUserEmail.value = user.email;
-                        
-                        db.collection("users").where("email", "==", user.email).get()
-                        .then((querySnapshot) => {
-                            if (!querySnapshot.empty) {
-                                const userData = querySnapshot.docs[0].data();
-                                userRole.value = userData.role || 'Staff'; 
-                                
-                                if(userData.active === false) {
-                                    globalAlert.value = {
-                                        show: true,
-                                        title: 'ระงับการเข้าถึง',
-                                        message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
-                                    };
-                                    db.collection("activity_logs").add({
-                                        userEmail: user.email,
-                                        module: 'ระบบล็อกอิน',
-                                        action: 'ERROR',
-                                        details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
-                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
-                                    firebase.auth().signOut(); 
-                                    return;
-                                }
+                      if (userData.active === false) {
+                        globalAlert.value = {
+                          show: true,
+                          title: "ระงับการเข้าถึง",
+                          message:
+                            "บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ",
+                        };
+                        db.collection("activity_logs").add({
+                          userEmail: user.email,
+                          module: "ระบบล็อกอิน",
+                          action: "ERROR",
+                          details: "พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)",
+                          timestamp:
+                            firebase.firestore.FieldValue.serverTimestamp(),
+                        });
+                        firebase.auth().signOut();
+                        return;
+                      }
 
-                                currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
-                                
-                                if (!sessionStorage.getItem('isLogged')) {
-                                    db.collection("activity_logs").add({
-                                        userEmail: user.email,
-                                        module: 'ระบบล็อกอิน',
-                                        action: 'LOGIN',
-                                        details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
-                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
-                                    sessionStorage.setItem('isLogged', 'true'); 
-                                }
+                      currentPage.value =
+                        userRole.value === "Admin" ? "dashboard" : "stock";
 
-                            } else {
-                                userRole.value = 'Staff';
-                                currentPage.value = 'stock';
-                                if (!sessionStorage.getItem('isLogged')) {
-                                    sessionStorage.setItem('isLogged', 'true');
-                                }
-                            }
-                        })
-                        .catch(err => { console.error("Error", err); currentPage.value = 'stock'; });
-
+                      if (!sessionStorage.getItem("isLogged")) {
+                        db.collection("activity_logs").add({
+                          userEmail: user.email,
+                          module: "ระบบล็อกอิน",
+                          action: "LOGIN",
+                          details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
+                          timestamp:
+                            firebase.firestore.FieldValue.serverTimestamp(),
+                        });
+                        sessionStorage.setItem("isLogged", "true");
+                      }
                     } else {
-                        currentPage.value = 'login';
-                        userRole.value = '';
-                        currentUserEmail.value = '';
-                        
-                        localStorage.removeItem('loginTimestamp');
-                        sessionStorage.removeItem('isLogged');
-                        if(sessionTimer) clearInterval(sessionTimer);
+                      userRole.value = "Staff";
+                      currentPage.value = "stock";
+                      if (!sessionStorage.getItem("isLogged")) {
+                        sessionStorage.setItem("isLogged", "true");
+                      }
                     }
-                });
+                  })
+                  .catch((err) => {
+                    console.error("Error", err);
+                    currentPage.value = "stock";
+                  });
+              } else {
+                currentPage.value = "login";
+                userRole.value = "";
+                currentUserEmail.value = "";
+
+                localStorage.removeItem("loginTimestamp");
+                sessionStorage.removeItem("isLogged");
+                if (sessionTimer) clearInterval(sessionTimer);
+              }
             });
+          });
 
-            const changePage = (pageName) => {
-                currentPage.value = pageName;
-                isSidebarOpen.value = false;
-            };
+          const changePage = (pageName) => {
+            currentPage.value = pageName;
+            isSidebarOpen.value = false;
+          };
 
-            const handleLogin = () => {};
+          const handleLogin = () => {};
 
-            const confirmLogout = () => {
-                const emailToLog = currentUserEmail.value || 'Unknown';
+          const confirmLogout = () => {
+            const emailToLog = currentUserEmail.value || "Unknown";
 
-                db.collection("activity_logs").add({
-                    userEmail: emailToLog,
-                    module: 'ระบบล็อกอิน',
-                    action: 'LOGOUT', 
-                    details: 'ออกจากระบบอย่างปลอดภัย',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).then(() => {
-                    return firebase.auth().signOut();
-                }).then(() => {
-                    showLogoutModal.value = false;
-                    localStorage.removeItem('loginTimestamp');
-                    sessionStorage.removeItem('isLogged');
-                    if(sessionTimer) clearInterval(sessionTimer);
-                }).catch((error) => {
-                    console.error("Logout Error:", error);
-                });
-            };
+            db.collection("activity_logs")
+              .add({
+                userEmail: emailToLog,
+                module: "ระบบล็อกอิน",
+                action: "LOGOUT",
+                details: "ออกจากระบบอย่างปลอดภัย",
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+              })
+              .then(() => {
+                return firebase.auth().signOut();
+              })
+              .then(() => {
+                showLogoutModal.value = false;
+                localStorage.removeItem("loginTimestamp");
+                sessionStorage.removeItem("isLogged");
+                if (sessionTimer) clearInterval(sessionTimer);
+              })
+              .catch((error) => {
+                console.error("Logout Error:", error);
+              });
+          };
 
-            const addCategory = (newCat) => {
-                if (newCat && !categories.value.includes(newCat)) { categories.value.push(newCat); }
-            };
+          return {
+            currentPage,
+            showLogoutModal,
+            globalAlert,
+            isSidebarOpen,
+            changePage,
+            inventory,
+            suppliers,
+            wastageLogs,
+            categories,
+            units,
+            currentUserEmail,
+            userRole,
+            handleLogin,
+            confirmLogout,
+            addCategory,
+            addUnit,
+            editCategory, 
+            deleteCategory,
+            editUnit,
+            deleteUnit, 
+            saveData,
+          };
+        },
+      });
 
-            const addUnit = (newUnit) => {
-                if (newUnit && !units.value.includes(newUnit)) { units.value.push(newUnit); }
-            };
+      app.component("page-login", LoginView);
+      app.component("page-stock", StockView);
+      app.component("page-reports", ReportView);
+      app.component("page-dashboard", DashboardView);
+      app.component("page-suppliers", SupplierView);
+      app.component("page-wastage", WastageView);
+      app.component("page-activitylog", ActivityLogView);
+      app.component("page-manageuser", ManageUserView);
 
-            const saveData = (newData) => {
-                inventory.value = newData;
-            };
-
-            return {
-                currentPage, 
-                showLogoutModal, 
-                globalAlert,
-                isSidebarOpen, 
-                changePage,    
-                inventory, 
-                suppliers,
-                wastageLogs,
-                categories, 
-                units,
-                currentUserEmail, 
-                userRole,         
-                handleLogin,
-                confirmLogout,
-                addCategory, 
-                addUnit,
-                saveData
-            };
-        }
-    });
-
-    app.component('page-login', LoginView);
-    app.component('page-stock', StockView);
-    app.component('page-reports', ReportView);
-    app.component('page-dashboard', DashboardView);
-    app.component('page-suppliers', SupplierView);
-    app.component('page-wastage', WastageView);
-    app.component('page-activitylog', ActivityLogView);
-    app.component('page-manageuser', ManageUserView);
-    
-    app.mount('#app');
+      app.mount("#app");
     </script>
-</body>
+  </body>
 </html>

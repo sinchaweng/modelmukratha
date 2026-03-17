@@ -6,12 +6,24 @@ const StockView = {
       suppliersData: [],
       showAddModal: false,
       showEditModal: false,
-      showCatModal: false,
-      showUnitModal: false,
       showDeleteModal: false,
       itemToDelete: null,
+
+      // ตัวจัดการ Modal หมวดหมู่และหน่วยนับ
+      showCatModal: false,
+      showUnitModal: false,
       newCatName: "",
       newUnitName: "",
+
+      // ตัวแปรสำหรับสถานะการแก้ไข (Edit)
+      editingCatIndex: null,
+      editingCatValue: "",
+      editingUnitIndex: null,
+      editingUnitValue: "",
+
+      // ตัวจัดการ Modal ยืนยันการลบการตั้งค่า
+      settingToDelete: { show: false, type: "", name: "" },
+
       activeItem: null,
       editingItem: null,
       actionType: "in",
@@ -34,7 +46,18 @@ const StockView = {
         unit: "",
         price: 0,
       },
+      
+      currentPage: 1,
+      itemsPerPage: 20,
     };
+  },
+  watch: {
+    search() {
+      this.currentPage = 1;
+    },
+    filterCat() {
+      this.currentPage = 1;
+    },
   },
   template: `
     <section class="w-full text-left animate-in fade-in duration-500">
@@ -43,11 +66,11 @@ const StockView = {
                 <h2 class="text-3xl font-bold text-slate-800">จัดการวัตถุดิบ</h2>
             </div>
             <div class="flex gap-2" v-if="userRole === 'Admin'">
-                <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
-                    <i class="fas fa-tags"></i> + หมวดหมู่
+                <button @click="openCatManager" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200 flex items-center gap-2">
+                    <i class="fas fa-cog"></i> จัดการหมวดหมู่
                 </button>
-                <button @click="promptNewUnit" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
-                    <i class="fas fa-balance-scale"></i> + หน่วยนับ
+                <button @click="openUnitManager" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200 flex items-center gap-2">
+                    <i class="fas fa-cog"></i> จัดการหน่วยนับ
                 </button>
                 
                 <button @click="openAddModal" class="ml-2 bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 shadow-lg transition flex items-center gap-2 text-sm">
@@ -69,7 +92,7 @@ const StockView = {
 
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase font-bold border-b">
+                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase font-bold border-b sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th class="p-5 w-1/3 font-semibold text-slate-600">รหัส / รายการวัตถุดิบ</th>
                         <th class="p-5 w-1/6 font-semibold text-slate-600">คู่ค้า</th>
@@ -78,12 +101,12 @@ const StockView = {
                         <th class="p-5 text-center font-semibold text-slate-600">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm">
-                    <tr v-for="item in filteredItems" :key="item.id" class="border-b last:border-0 hover:bg-slate-50 transition group">
+                
+                <tbody v-for="group in paginatedGroupedItems" :key="group.name" class="text-sm">
+                    <tr v-for="item in group.items" :key="item.id" class="border-b last:border-0 hover:bg-slate-50 transition group">
                         <td class="p-5 text-left">
                             <div class="text-[10px] text-orange-500 font-black mb-0.5 tracking-wider">{{ item.sku || '-' }}</div>
                             <div class="font-bold text-slate-700 text-base group-hover:text-slate-900">{{ item.name }}</div>
-                            <div class="text-[10px] text-slate-600 font-bold uppercase tracking-wider">{{ item.cat }}</div>
                         </td>
                         <td class="p-5 text-slate-600 text-sm">
                             <div class="flex items-center gap-2">
@@ -115,11 +138,32 @@ const StockView = {
                             </div>
                         </td>
                     </tr>
-                    <tr v-if="filteredItems.length === 0">
+                </tbody>
+                
+                <tbody v-if="paginatedGroupedItems.length === 0">
+                    <tr>
                         <td colspan="5" class="p-8 text-center text-slate-600">กำลังโหลด หรือ ไม่พบข้อมูลวัตถุดิบ...</td>
                     </tr>
                 </tbody>
             </table>
+
+            <div v-if="totalStockPages > 1" class="flex flex-col sm:flex-row justify-between items-center mt-4 border-t pt-4 pb-6 px-6">
+                <div class="text-sm font-bold text-slate-500 mb-4 sm:mb-0">
+                    แสดงรายการที่ {{ ((currentPage - 1) * itemsPerPage) + 1 }} ถึง {{ Math.min(currentPage * itemsPerPage, totalStockItems) }} จากทั้งหมด {{ totalStockItems }} รายการ
+                </div>
+                <div class="flex gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                    <button @click="currentPage--" :disabled="currentPage === 1" class="px-5 py-2 bg-white hover:bg-slate-50 disabled:bg-transparent disabled:opacity-40 text-slate-700 font-bold rounded-xl transition shadow-sm disabled:shadow-none">
+                        <i class="fas fa-chevron-left mr-1 text-xs"></i> ก่อนหน้า
+                    </button>
+                    <div class="flex items-center px-4 font-black text-slate-800 text-sm">
+                        หน้า {{ currentPage }} / {{ totalStockPages }}
+                    </div>
+                    <button @click="currentPage++" :disabled="currentPage === totalStockPages" class="px-5 py-2 bg-white hover:bg-slate-50 disabled:bg-transparent disabled:opacity-40 text-slate-700 font-bold rounded-xl transition shadow-sm disabled:shadow-none">
+                        ถัดไป <i class="fas fa-chevron-right ml-1 text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            
         </div>
 
         <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -188,7 +232,7 @@ const StockView = {
         <div v-if="showEditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white" v-if="editingItem">
                 <div class="bg-blue-600 p-6 text-white text-lg font-bold uppercase tracking-tighter">
-                    ✏️ แก้ไขข้อมูลวัตถุดิบ
+                    แก้ไขข้อมูลวัตถุดิบ
                 </div>
                 <div class="p-8 space-y-5">
                     <div class="grid grid-cols-2 gap-6 mb-2">
@@ -251,34 +295,96 @@ const StockView = {
         </div>
         
         <div v-if="showCatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-800 p-6 text-white text-lg font-bold uppercase">
-                    <i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white flex flex-col max-h-[85vh]">
+                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase">
+                    <span><i class="fas fa-tags mr-2"></i> จัดการหมวดหมู่</span>
+                    <button @click="showCatModal = false" class="text-slate-400 hover:text-white hover:rotate-90 transition text-2xl leading-none">&times;</button>
                 </div>
-                <div class="p-8"><label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
-                    <input v-model="newCatName" @keyup.enter="saveCategory" type="text" 
-                        placeholder="เช่น ผักสด, เครื่องปรุง..." 
-                        class="w-full border-b-2 border-slate-200 p-2 outline-none focus:border-orange-500 font-bold text-xl transition text-slate-900 placeholder:text-slate-500">
+                
+                <div class="p-6 bg-slate-50 border-b flex gap-2">
+                    <input v-model="newCatName" @keyup.enter="saveCategory" type="text" placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." class="flex-1 border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-slate-800 font-bold text-sm transition">
+                    <button @click="saveCategory" class="bg-slate-800 text-white px-5 py-2 rounded-xl font-bold hover:bg-black transition shadow-md whitespace-nowrap"><i class="fas fa-plus mr-1"></i> เพิ่ม</button>
                 </div>
-                <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showCatModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
-                    <button @click="saveCategory" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg hover:bg-black transition text-sm uppercase">บันทึกหมวดหมู่</button>
+
+                <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <ul class="space-y-3">
+                        <li v-for="(cat, index) in categories" :key="index" class="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl shadow-sm hover:shadow transition group">
+                            <template v-if="editingCatIndex !== index">
+                                <span class="font-bold text-slate-700 pl-2">{{ cat }}</span>
+                                <div class="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="startEditCat(index, cat)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
+                                    <button @click="confirmDeleteSetting('cat', cat)" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <input v-model="editingCatValue" @keyup.enter="saveEditCat(cat)" class="flex-1 border-b-2 border-blue-500 bg-blue-50 p-1 pl-2 outline-none font-bold text-blue-800 text-sm mr-2" autofocus>
+                                <div class="flex gap-1">
+                                    <button @click="saveEditCat(cat)" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-check text-xs"></i></button>
+                                    <button @click="editingCatIndex = null" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-times text-xs"></i></button>
+                                </div>
+                            </template>
+                        </li>
+                        <li v-if="categories.length === 0" class="text-center text-slate-400 font-bold py-6">ยังไม่มีข้อมูลหมวดหมู่</li>
+                    </ul>
                 </div>
             </div>
         </div>
 
         <div v-if="showUnitModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-800 p-6 text-white text-lg font-bold uppercase">
-                    <i class="fas fa-balance-scale mr-2"></i> เพิ่มหน่วยนับ
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white flex flex-col max-h-[85vh]">
+                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase">
+                    <span><i class="fas fa-balance-scale mr-2"></i> จัดการหน่วยนับ</span>
+                    <button @click="showUnitModal = false" class="text-slate-400 hover:text-white hover:rotate-90 transition text-2xl leading-none">&times;</button>
                 </div>
-                <div class="p-8">
-                    <label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหน่วยนับ</label>
-                    <input v-model="newUnitName" @keyup.enter="saveUnit" type="text" placeholder="เช่น กิโลกรัม, ลิตร, ฟอง..." class="w-full border-b-2 p-2 outline-none focus:border-slate-800 font-bold text-lg transition">
+                
+                <div class="p-6 bg-slate-50 border-b flex gap-2">
+                    <input v-model="newUnitName" @keyup.enter="saveUnit" type="text" placeholder="พิมพ์หน่วยนับใหม่..." class="flex-1 border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-slate-800 font-bold text-sm transition">
+                    <button @click="saveUnit" class="bg-slate-800 text-white px-5 py-2 rounded-xl font-bold hover:bg-black transition shadow-md whitespace-nowrap"><i class="fas fa-plus mr-1"></i> เพิ่ม</button>
                 </div>
-                <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showUnitModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
-                    <button @click="saveUnit" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg hover:bg-black transition text-sm uppercase">บันทึกหน่วยนับ</button>
+
+                <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <ul class="space-y-3">
+                        <li v-for="(u, index) in units" :key="index" class="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl shadow-sm hover:shadow transition group">
+                            <template v-if="editingUnitIndex !== index">
+                                <span class="font-bold text-slate-700 pl-2">{{ u }}</span>
+                                <div class="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="startEditUnit(index, u)" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
+                                    <button @click="confirmDeleteSetting('unit', u)" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <input v-model="editingUnitValue" @keyup.enter="saveEditUnit(u)" class="flex-1 border-b-2 border-blue-500 bg-blue-50 p-1 pl-2 outline-none font-bold text-blue-800 text-sm mr-2" autofocus>
+                                <div class="flex gap-1">
+                                    <button @click="saveEditUnit(u)" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-check text-xs"></i></button>
+                                    <button @click="editingUnitIndex = null" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-times text-xs"></i></button>
+                                </div>
+                            </template>
+                        </li>
+                        <li v-if="units.length === 0" class="text-center text-slate-400 font-bold py-6">ยังไม่มีข้อมูลหน่วยนับ</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="settingToDelete.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-red-50">
+                <div class="bg-red-600 p-6 text-white text-center">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black uppercase tracking-tighter">ยืนยันการลบ?</h3>
+                </div>
+                <div class="p-8 text-center">
+                    <p class="text-slate-700 text-sm mb-2">คุณต้องการลบข้อมูลนี้ใช่หรือไม่?</p>
+                    <div class="text-2xl font-bold text-red-600 mb-4 border-2 border-red-100 bg-red-50 py-2 rounded-xl">{{ settingToDelete.name }}</div>
+                    
+                    <div class="bg-orange-50 text-orange-600 text-xs font-bold py-3 px-4 rounded-xl inline-block text-left leading-relaxed">
+                        ⚠️ <span class="underline">ผลกระทบ : </span> หากวัตถุดิบใดกำลังใช้งานข้อมูลนี้อยู่ ระบบจะปรับให้เป็นค่า <b>"ไม่ระบุ"</b> โดยอัตโนมัติ
+                    </div>
+                </div>
+                <div class="p-6 bg-slate-50 flex gap-3 border-t">
+                    <button @click="settingToDelete.show = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="executeDeleteSetting" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-sm uppercase tracking-widest">ยืนยันลบ</button>
                 </div>
             </div>
         </div>
@@ -324,14 +430,70 @@ const StockView = {
     </section>
   `,
   computed: {
-    filteredItems() {
-      return this.stockData.filter((i) => {
+    // 1. ตัวเดิม: กรองและจัดกลุ่มทั้งหมด
+    filteredAndGroupedItems() {
+      const filtered = this.stockData.filter((i) => {
         const matchNameOrSku =
           (i.name || "").toLowerCase().includes(this.search.toLowerCase()) ||
           (i.sku || "").toLowerCase().includes(this.search.toLowerCase());
         const matchCat = this.filterCat === "" || i.cat === this.filterCat;
         return matchNameOrSku && matchCat;
       });
+
+      const groups = {};
+      filtered.forEach((item) => {
+        const cat = item.cat || item.type || "ทั่วไป (ไม่ระบุหมวด)";
+        if (!groups[cat]) {
+          groups[cat] = { name: cat, items: [] };
+        }
+        groups[cat].items.push(item);
+      });
+
+      const sorted = Object.values(groups).sort((a, b) =>
+        a.name.localeCompare(b.name, "th"),
+      );
+      sorted.forEach((g) =>
+        g.items.sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", "th"),
+        ),
+      );
+      return sorted;
+    },
+
+    // 2. [เพิ่มใหม่] นับจำนวนรายการทั้งหมดที่ค้นหาเจอ
+    totalStockItems() {
+      let count = 0;
+      this.filteredAndGroupedItems.forEach((g) => (count += g.items.length));
+      return count;
+    },
+
+    // 3. [เพิ่มใหม่] คำนวณว่ามีทั้งหมดกี่หน้า
+    totalStockPages() {
+      return Math.ceil(this.totalStockItems / this.itemsPerPage) || 1;
+    },
+
+    // 4. [เพิ่มใหม่] ตัวนี้คือตัวที่จะส่งไปโชว์ใน HTML (ตัดมาแค่ 20 รายการ)
+    paginatedGroupedItems() {
+      let startIndex = (this.currentPage - 1) * this.itemsPerPage;
+      let endIndex = startIndex + this.itemsPerPage;
+      let currentIndex = 0;
+      let result = [];
+
+      this.filteredAndGroupedItems.forEach((group) => {
+        let itemsInPage = [];
+        group.items.forEach((item) => {
+          // เช็คว่ารายการนี้อยู่ในช่วงหน้าที่เรากำลังดูอยู่ไหม
+          if (currentIndex >= startIndex && currentIndex < endIndex) {
+            itemsInPage.push(item);
+          }
+          currentIndex++;
+        });
+
+        if (itemsInPage.length > 0) {
+          result.push({ ...group, items: itemsInPage });
+        }
+      });
+      return result;
     },
   },
   mounted() {
@@ -340,7 +502,7 @@ const StockView = {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.active !== false) {
-            items.push({ id: doc.id, ...data });
+          items.push({ id: doc.id, ...data });
         }
       });
       this.stockData = items;
@@ -351,7 +513,7 @@ const StockView = {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.active !== false) {
-            sups.push({ id: doc.id, ...data });
+          sups.push({ id: doc.id, ...data });
         }
       });
       this.suppliersData = sups;
@@ -376,41 +538,20 @@ const StockView = {
     },
 
     openAddModal() {
-      this.newItem = {
-        sku: "",
-        name: "",
-        cat: "",
-        supplier: "",
-        qty: 0,
-        min: 0,
-        unit: "",
-        price: 0,
-      };
+      this.newItem = { sku: "", name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
       this.showAddModal = true;
     },
 
     closeAddModal() {
       this.showAddModal = false;
-      this.newItem = {
-        sku: "",
-        name: "",
-        cat: "",
-        supplier: "",
-        qty: 0,
-        min: 0,
-        unit: "",
-        price: 0,
-      };
+      this.newItem = { sku: "", name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
     },
 
     addNewItem() {
       if (this.userRole !== "Admin") return;
 
       if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
-        return this.triggerAlert(
-          "ข้อมูลไม่ครบถ้วน",
-          "กรุณาระบุข้อมูลให้ครบถ้วน",
-        );
+        return this.triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุข้อมูลให้ครบถ้วน");
       }
 
       const itemToSave = { ...this.newItem, active: true };
@@ -419,22 +560,8 @@ const StockView = {
         .add(itemToSave)
         .then(() => {
           const codeInfo = this.newItem.sku ? `[${this.newItem.sku}] ` : "";
-          this.logActivity(
-            "CREATE",
-            `เพิ่มวัตถุดิบใหม่: ${codeInfo}${this.newItem.name}`,
-          );
-
-          this.showAddModal = false;
-          this.newItem = {
-            sku: "",
-            name: "",
-            cat: "",
-            supplier: "",
-            qty: 0,
-            min: 0,
-            unit: "",
-            price: 0,
-          };
+          this.logActivity("CREATE", `เพิ่มวัตถุดิบใหม่: ${codeInfo}${this.newItem.name}`);
+          this.closeAddModal();
         })
         .catch((error) => {
           console.error("Error adding document: ", error);
@@ -459,7 +586,6 @@ const StockView = {
         .update(updateData)
         .then(() => {
           this.logActivity("UPDATE", `แก้ไขข้อมูลวัตถุดิบ: ${updateData.name}`);
-
           this.showEditModal = false;
           this.editingItem = null;
         })
@@ -482,11 +608,7 @@ const StockView = {
         .doc(this.itemToDelete.id)
         .update({ active: false })
         .then(() => {
-          this.logActivity(
-            "DELETE",
-            `นำวัตถุดิบออกจากระบบ: ${this.itemToDelete.name}`,
-          );
-
+          this.logActivity("DELETE", `นำวัตถุดิบออกจากระบบ: ${this.itemToDelete.name}`);
           this.showDeleteModal = false;
           this.itemToDelete = null;
         })
@@ -504,10 +626,7 @@ const StockView = {
 
     confirmAction() {
       if (this.actionQty <= 0) {
-        return this.triggerAlert(
-          "จำนวนไม่ถูกต้อง",
-          "กรุณาระบุจำนวนที่มากกว่า 0",
-        );
+        return this.triggerAlert("จำนวนไม่ถูกต้อง", "กรุณาระบุจำนวนที่มากกว่า 0");
       }
 
       let newQty = this.activeItem.qty;
@@ -515,10 +634,7 @@ const StockView = {
         newQty += this.actionQty;
       } else {
         if (newQty < this.actionQty) {
-          return this.triggerAlert(
-            "สต๊อกไม่พอ",
-            "จำนวนวัตถุดิบในคลังมีไม่เพียงพอสำหรับการเบิกออก",
-          );
+          return this.triggerAlert("สต๊อกไม่พอ", "จำนวนวัตถุดิบในคลังมีไม่เพียงพอสำหรับการเบิกออก");
         }
         newQty -= this.actionQty;
       }
@@ -539,11 +655,7 @@ const StockView = {
         })
         .then(() => {
           const actionText = this.actionType === "in" ? "รับเข้า" : "เบิกออก";
-          this.logActivity(
-            "UPDATE",
-            `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}`,
-          );
-
+          this.logActivity("UPDATE", `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}`);
           this.activeItem = null;
         })
         .catch((error) => {
@@ -552,14 +664,17 @@ const StockView = {
         });
     },
 
-    promptNewCategory() {
+    openCatManager() {
       if (this.userRole !== "Admin") return;
       this.newCatName = "";
+      this.editingCatIndex = null;
       this.showCatModal = true;
     },
-    promptNewUnit() {
+
+    openUnitManager() {
       if (this.userRole !== "Admin") return;
       this.newUnitName = "";
+      this.editingUnitIndex = null;
       this.showUnitModal = true;
     },
 
@@ -567,15 +682,12 @@ const StockView = {
       if (this.userRole !== "Admin") return;
       const val = this.newCatName.trim();
       if (val) {
+        if (this.categories.includes(val)) {
+          return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหมวดหมู่นี้ในระบบแล้ว");
+        }
         this.$emit("add-category", val);
-        this.logActivity("CREATE", `เพิ่มหมวดหมู่ใหม่: ${val}`);
-        this.showCatModal = false;
+        this.logActivity("CREATE", `เพิ่มหมวดหมู่: ${val}`);
         this.newCatName = "";
-      } else {
-        this.triggerAlert(
-          "ยังไม่ได้ระบุชื่อ",
-          "กรุณาใส่ชื่อหมวดหมู่ที่ต้องการเพิ่ม",
-        );
       }
     },
 
@@ -583,16 +695,106 @@ const StockView = {
       if (this.userRole !== "Admin") return;
       const val = this.newUnitName.trim();
       if (val) {
+        if (this.units.includes(val)) {
+          return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหน่วยนับนี้ในระบบแล้ว");
+        }
         this.$emit("add-unit", val);
-        this.logActivity("CREATE", `เพิ่มหน่วยนับใหม่: ${val}`);
-        this.showUnitModal = false;
+        this.logActivity("CREATE", `เพิ่มหน่วยนับ: ${val}`);
         this.newUnitName = "";
-      } else {
-        this.triggerAlert(
-          "ยังไม่ได้ระบุชื่อ",
-          "กรุณาใส่ชื่อหน่วยนับที่ต้องการเพิ่ม",
-        );
       }
+    },
+
+    startEditCat(index, name) {
+      this.editingCatIndex = index;
+      this.editingCatValue = name;
+    },
+    saveEditCat(oldName) {
+      const newName = this.editingCatValue.trim();
+      if (!newName || newName === oldName) {
+        this.editingCatIndex = null;
+        return;
+      }
+
+      this.$emit("edit-category", { old: oldName, new: newName });
+
+      const batch = db.batch();
+      this.stockData.forEach((item) => {
+        if (item.cat === oldName) {
+          const ref = db.collection("inventory").doc(item.id);
+          batch.update(ref, { cat: newName });
+        }
+      });
+      batch.commit();
+
+      this.logActivity(
+        "UPDATE",
+        `เปลี่ยนชื่อหมวดหมู่: ${oldName} เป็น ${newName}`,
+      );
+      this.editingCatIndex = null;
+    },
+
+    startEditUnit(index, name) {
+      this.editingUnitIndex = index;
+      this.editingUnitValue = name;
+    },
+    saveEditUnit(oldName) {
+      const newName = this.editingUnitValue.trim();
+      if (!newName || newName === oldName) {
+        this.editingUnitIndex = null;
+        return;
+      }
+
+      this.$emit("edit-unit", { old: oldName, new: newName });
+
+      const batch = db.batch();
+      this.stockData.forEach((item) => {
+        if (item.unit === oldName) {
+          const ref = db.collection("inventory").doc(item.id);
+          batch.update(ref, { unit: newName });
+        }
+      });
+      batch.commit();
+
+      this.logActivity(
+        "UPDATE",
+        `เปลี่ยนชื่อหน่วยนับ: ${oldName} เป็น ${newName}`,
+      );
+      this.editingUnitIndex = null;
+    },
+
+    confirmDeleteSetting(type, name) {
+      this.settingToDelete = { show: true, type: type, name: name };
+    },
+
+    executeDeleteSetting() {
+      const type = this.settingToDelete.type;
+      const name = this.settingToDelete.name;
+
+      if (type === "cat") {
+        this.$emit("delete-category", name);
+        const batch = db.batch();
+        this.stockData.forEach((item) => {
+          if (item.cat === name) {
+            const ref = db.collection("inventory").doc(item.id);
+            batch.update(ref, { cat: "ทั่วไป (ไม่ระบุหมวด)" });
+          }
+        });
+        batch.commit();
+        this.logActivity("DELETE", `ลบหมวดหมู่: ${name}`);
+      } else if (type === "unit") {
+        this.$emit("delete-unit", name);
+        const batch = db.batch();
+        this.stockData.forEach((item) => {
+          if (item.unit === name) {
+            const ref = db.collection("inventory").doc(item.id);
+            batch.update(ref, { unit: "-" });
+          }
+        });
+        batch.commit();
+        this.logActivity("DELETE", `ลบหน่วยนับ: ${name}`);
+      }
+
+      this.settingToDelete = { show: false, type: "", name: "" };
     },
   },
 };
