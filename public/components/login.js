@@ -41,7 +41,7 @@ const LoginView = {
                 
                 <div class="relative">
                     <i class="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                    <input v-model="password" @keyup.enter="handleLogin" type="password" placeholder="รหัสผ่าน" 
+                    <input v-model="password" maxlength="250" @keyup.enter="handleLogin" type="password" placeholder="รหัสผ่าน" 
                         class="w-full pl-12 pr-6 py-4 bg-black/5 border border-white/20 focus:bg-white/40 rounded-2xl outline-none transition-all font-medium text-slate-800 placeholder:text-slate-500">
                 </div>
                 

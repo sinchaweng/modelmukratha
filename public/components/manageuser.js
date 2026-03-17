@@ -65,7 +65,7 @@ const ManageUserView = {
                     </div>
                     <div v-if="!isEditing"> 
                         <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">ตั้งรหัสผ่านชั่วคราว (ขั้นต่ำ 6 ตัว)</label>
-                        <input v-model="form.password" type="password" placeholder="******" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none">
+                        <input v-model="form.password" type="password" maxlength="250" placeholder="******" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#cc3f38] outline-none">
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">กำหนดสิทธิ์ (Role)</label>
@@ -121,15 +121,34 @@ const ManageUserView = {
             </div>
         </div>
     </div>
+
+    <div v-if="showSuccessModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
+        <div class="bg-emerald-500 p-6 text-white text-center">
+            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-check-circle text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-black uppercase tracking-tight">ดำเนินการสำเร็จ</h3>
+        </div>
+        <div class="p-8 text-center text-slate-700 font-bold leading-relaxed">
+            {{ successMessage }}
+        </div>
+        <div class="p-4 bg-slate-50">
+            <button @click="showSuccessModal = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all">ตกลง</button>
+        </div>
+    </div>
+</div>
   `,
   data() {
     return {
       users: [],
       showModal: false,
-      showErrorModal: false, 
+      showErrorModal: false,
       errorMessage: "",
       isEditing: false,
       isLoading: false,
+      showSuccessModal: false,
+      successMessage: "",
       form: {
         id: null,
         email: "",
@@ -149,9 +168,9 @@ const ManageUserView = {
   },
   // 1. กรองข้อมูลเฉพาะผู้ใช้ที่ไม่ได้ถูก Delete
   computed: {
-      activeUsers() {
-          return this.users.filter(user => user.deleted !== true);
-      }
+    activeUsers() {
+      return this.users.filter((user) => user.deleted !== true);
+    },
   },
   mounted() {
     db.collection("users").onSnapshot((snapshot) => {
@@ -163,16 +182,23 @@ const ManageUserView = {
     });
   },
   methods: {
+    validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    },
+
     // ฟังก์ชันสำหรับบันทึก Log กิจกรรม
     logActivity(action, details) {
-        const userEmail = firebase.auth().currentUser?.email || 'System';
-        db.collection("activity_logs").add({
-            userEmail: userEmail,
-            module: 'ผู้ใช้งาน',
-            action: action,
-            details: details,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => console.error("Log Error:", err));
+      const userEmail = firebase.auth().currentUser?.email || "System";
+      db.collection("activity_logs")
+        .add({
+          userEmail: userEmail,
+          module: "ผู้ใช้งาน",
+          action: action,
+          details: details,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        })
+        .catch((err) => console.error("Log Error:", err));
     },
 
     openModal(user = null) {
@@ -196,67 +222,88 @@ const ManageUserView = {
       this.showModal = false;
     },
     async saveUser() {
-        if (!this.form.email || !this.form.name) {
-            this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน"; 
+      if (!this.form.email || !this.form.name) {
+        this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
+        this.showErrorModal = true;
+        return;
+      }
+
+      if (!this.validateEmail(this.form.email)) {
+        this.errorMessage = "รูปแบบอีเมลไม่ถูกต้อง (ตัวอย่าง: name@email.com)";
+        this.showErrorModal = true;
+        return;
+      }
+
+      if (!this.isEditing) {
+        if (!this.form.password) {
+          this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
+          this.showErrorModal = true;
+          return;
+        }
+        if (this.form.password.length < 6) {
+          this.errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+          this.showErrorModal = true;
+          return;
+        }
+
+        if (this.form.password.length > 250) {
+            this.errorMessage = "รหัสผ่านต้องมีความยาวไม่เกิน 250 ตัวอักษร";
             this.showErrorModal = true;
             return;
         }
+      }
 
-        if (!this.isEditing) {
-            if (!this.form.password) {
-                this.errorMessage = "กรุณาระบุข้อมูลให้ครบถ้วน";
-                this.showErrorModal = true;
-                return;
-            }
-            if (this.form.password.length < 6) {
-                this.errorMessage = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
-                this.showErrorModal = true;
-                return;
-            }
+      this.isLoading = true;
+      try {
+        if (this.isEditing) {
+          await db.collection("users").doc(this.form.id).update({
+            name: this.form.name,
+            role: this.form.role,
+          });
+          this.logActivity("UPDATE", `แก้ไขข้อมูลผู้ใช้: ${this.form.email}`);
+          this.successMessage = "อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว";
+          this.showSuccessModal = true;
+          this.closeModal();
+        } else {
+          // กรณีเพิ่มใหม่
+          await db.collection("users").add({
+            email: this.form.email,
+            name: this.form.name,
+            role: this.form.role,
+            active: true,
+            deleted: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+
+          await firebase
+            .auth()
+            .createUserWithEmailAndPassword(
+              this.form.email,
+              this.form.password,
+            );
+
+          this.logActivity("CREATE", `เพิ่มผู้ใช้งานใหม่: ${this.form.email}`);
+          this.successMessage = `สร้างบัญชีผู้ใช้ ${this.form.email} สำเร็จ!`;
+          this.showSuccessModal = true;
+
+          // ล้างฟอร์มหลังจากเพิ่มสำเร็จ
+          this.form = {
+            id: null,
+            email: "",
+            password: "",
+            name: "",
+            role: "Staff",
+            active: true,
+          };
+          this.closeModal();
         }
-
-        this.isLoading = true;
-
-        try {
-            if (this.isEditing) {
-            await db.collection("users").doc(this.form.id).update({
-                name: this.form.name,
-                role: this.form.role,
-            });
-            // บันทึก Log การแก้ไข
-            this.logActivity('UPDATE', `แก้ไขข้อมูลผู้ใช้: ${this.form.email}`);
-            
-            this.closeModal();
-            } else {
-            await db.collection("users").add({
-                email: this.form.email,
-                name: this.form.name,
-                role: this.form.role,
-                active: true,
-                deleted: false, // เพิ่ม field deleted เป็น false ตอนสร้าง
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-
-            try {
-                await firebase.auth().createUserWithEmailAndPassword(this.form.email, this.form.password);
-                
-                // บันทึก Log สร้างใหม่
-                this.logActivity('CREATE', `เพิ่มผู้ใช้งานใหม่: ${this.form.email} (${this.form.role})`);
-                
-                alert("สร้างบัญชีผู้ใช้สำเร็จ! (ระบบอาจพากลับไปหน้า Login ใหม่)");
-            } catch (authErr) {
-                console.error("Auth Error:", authErr);
-                alert("บันทึกข้อมูลแล้ว แต่ไม่สามารถสร้างระบบล็อกอินได้ (อีเมลอาจซ้ำ)");
-            }
-
-            this.closeModal();
-            }
-        } catch (error) {
-            console.error("Error saving user:", error);
-            alert("เกิดข้อผิดพลาด: " + error.message);
-        } finally {
-            this.isLoading = false;
-        }
+      } catch (error) {
+        console.error("Error saving user:", error);
+        this.errorMessage = "เกิดข้อผิดพลาดจากระบบ: " + error.message;
+        this.showErrorModal = true;
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     toggleUserStatus(user) {
@@ -271,9 +318,11 @@ const ManageUserView = {
           });
           // บันทึก Log เปลี่ยนสถานะ
           const statusText = !user.active ? "เปิดใช้งาน" : "ระงับการใช้งาน";
-          this.logActivity('UPDATE', `${statusText} บัญชี: ${user.email}`);
+          this.logActivity("UPDATE", `${statusText} บัญชี: ${user.email}`);
 
           this.confirmationModal.show = false;
+          this.successMessage = `${statusText} บัญชี ${user.email} สำเร็จแล้ว`;
+          this.showSuccessModal = true;
         },
       };
     },
@@ -288,14 +337,19 @@ const ManageUserView = {
         confirmAction: async () => {
           // ใช้การ update deleted แทนการลบข้อมูลจริง
           await db.collection("users").doc(user.id).update({
-              deleted: true,
-              active: false // ระงับการใช้งานไปด้วยเลย
+            deleted: true,
+            active: false, // ระงับการใช้งานไปด้วยเลย
           });
-          
+
           // บันทึก Log การนำออก
-          this.logActivity('DELETE', `นำบัญชีผู้ใช้งานออก (ซ่อน): ${user.email}`);
+          this.logActivity(
+            "DELETE",
+            `นำบัญชีผู้ใช้งานออก (ซ่อน): ${user.email}`,
+          );
 
           this.confirmationModal.show = false;
+          this.successMessage = "นำข้อมูลผู้ใช้งานออกจากระบบเรียบร้อยแล้ว";
+          this.showSuccessModal = true;
         },
       };
     },
