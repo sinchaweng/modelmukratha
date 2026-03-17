@@ -1,6 +1,6 @@
 const DashboardView = {
-    props: ['categories'], 
-    template: `
+  props: ["categories"],
+  template: `
     <section class="animate-in fade-in duration-500">
         <h2 class="text-3xl font-bold text-slate-800 mb-8 text-left">แดชบอร์ดสรุปผล</h2>
         
@@ -60,88 +60,112 @@ const DashboardView = {
         </div>
     </section>
     `,
-    data() {
-        return {
-            stockData: [],
-            wastageLogs: []
-        }
+  data() {
+    return {
+      stockData: [],
+      wastageLogs: [],
+    };
+  },
+  computed: {
+    activeStockData() {
+      return this.stockData.filter((item) => item.active !== false);
     },
-    computed: {
-        activeStockData() {
-            return this.stockData.filter(item => item.active !== false);
-        },
-        
-        totalWasteCost() {
-            return this.wastageLogs
-                .filter(log => log.active !== false) 
-                .reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
-        },
-        
-        // [เพิ่มใหม่] คำนวณมูลค่าคงเหลือในคลัง (จำนวนที่เหลือ * ราคาต้นทุน)
-        totalInventoryValue() {
-            return this.activeStockData.reduce((sum, item) => {
-                const qty = Number(item.qty) || 0;
-                const price = Number(item.price) || 0;
-                return sum + (qty * price);
-            }, 0);
-        },
-        
-        catStats() {
-            const totalItems = this.activeStockData.length; 
-            return this.categories.map(c => {
-                const count = this.activeStockData.filter(i => (i.cat === c || i.type === c)).length;
-                const percent = totalItems > 0 ? Math.round((count / totalItems) * 100) : 0;
-                return { name: c, count: count, percent: percent };
-            });
-        },
-        
-        recentWastageChart() {
-            const daysToShow = 5;
-            const chartData = [];
-            const today = new Date();
-            
-            for (let i = daysToShow - 1; i >= 0; i--) {
-                const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                
-                const dateString = d.toISOString().split('T')[0]; 
-                const label = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); 
-                
-                chartData.push({ date: dateString, label: label, cost: 0, percent: 0 });
-            }
 
-            // [แก้ไข] กรองเฉพาะประวัติของเสียที่ไม่ได้ถูกลบ (active !== false) มาแสดงในกราฟด้วย
-            this.wastageLogs.filter(log => log.active !== false).forEach(log => {
-                if (!log.date) return;
-                const logDate = log.date.split('T')[0];
-                const targetDay = chartData.find(d => d.date === logDate);
-                if (targetDay) {
-                    targetDay.cost += (Number(log.cost) || 0);
-                }
-            });
-
-            const maxCost = Math.max(...chartData.map(d => d.cost));
-            const baseMax = maxCost > 0 ? maxCost : 1; 
-
-            chartData.forEach(d => {
-                d.percent = maxCost > 0 ? (d.cost / baseMax) * 100 : 0; 
-                if (d.percent > 0 && d.percent < 10) d.percent = 10; 
-            });
-
-            return chartData;
-        }
+    totalWasteCost() {
+      return this.wastageLogs
+        .filter((log) => log.active !== false)
+        .reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
     },
-    mounted() {
-        db.collection("inventory").onSnapshot(snapshot => {
-            const items = [];
-            snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-            this.stockData = items;
+
+    // [เพิ่มใหม่] คำนวณมูลค่าคงเหลือในคลัง (จำนวนที่เหลือ * ราคาต้นทุน)
+    totalInventoryValue() {
+      return this.activeStockData.reduce((sum, item) => {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        return sum + qty * price;
+      }, 0);
+    },
+
+    catStats() {
+      const totalItems = this.activeStockData.length;
+      if (totalItems === 0) return [];
+
+      let currentSum = 0;
+      const stats = this.categories.map((c, index) => {
+        const count = this.activeStockData.filter(
+          (i) => i.cat === c || i.type === c,
+        ).length;
+        let percent = Math.round((count / totalItems) * 100);
+
+        // ตรวจสอบว่าเป็นหมวดสุดท้ายที่มีรายการหรือไม่
+        const isLastCategory = index === this.categories.length - 1;
+
+        if (isLastCategory) {
+          // หมวดสุดท้าย ให้เอา 100 ลบด้วยยอดรวมที่ปัดเศษไปก่อนหน้า
+          // เพื่อให้ผลรวมออกมาเป็น 100% เป๊ะเสมอ
+          percent = 100 - currentSum;
+        } else {
+          currentSum += percent;
+        }
+
+        return { name: c, count: count, percent: percent };
+      });
+
+      return stats;
+    },
+
+    recentWastageChart() {
+      const daysToShow = 5;
+      const chartData = [];
+      const today = new Date();
+
+      for (let i = daysToShow - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+
+        const dateString = d.toISOString().split("T")[0];
+        const label = d.toLocaleDateString("th-TH", {
+          day: "numeric",
+          month: "short",
         });
 
-        db.collection("wastage").onSnapshot(snapshot => {
-            const logs = [];
-            snapshot.forEach(doc => logs.push({ id: doc.id, ...doc.data() }));
-            this.wastageLogs = logs;
+        chartData.push({ date: dateString, label: label, cost: 0, percent: 0 });
+      }
+
+      // [แก้ไข] กรองเฉพาะประวัติของเสียที่ไม่ได้ถูกลบ (active !== false) มาแสดงในกราฟด้วย
+      this.wastageLogs
+        .filter((log) => log.active !== false)
+        .forEach((log) => {
+          if (!log.date) return;
+          const logDate = log.date.split("T")[0];
+          const targetDay = chartData.find((d) => d.date === logDate);
+          if (targetDay) {
+            targetDay.cost += Number(log.cost) || 0;
+          }
         });
-    }
+
+      const maxCost = Math.max(...chartData.map((d) => d.cost));
+      const baseMax = maxCost > 0 ? maxCost : 1;
+
+      chartData.forEach((d) => {
+        d.percent = maxCost > 0 ? (d.cost / baseMax) * 100 : 0;
+        if (d.percent > 0 && d.percent < 10) d.percent = 10;
+      });
+
+      return chartData;
+    },
+  },
+  mounted() {
+    db.collection("inventory").onSnapshot((snapshot) => {
+      const items = [];
+      snapshot.forEach((doc) => items.push({ id: doc.id, ...doc.data() }));
+      this.stockData = items;
+    });
+
+    db.collection("wastage").onSnapshot((snapshot) => {
+      const logs = [];
+      snapshot.forEach((doc) => logs.push({ id: doc.id, ...doc.data() }));
+      this.wastageLogs = logs;
+    });
+  },
 };
