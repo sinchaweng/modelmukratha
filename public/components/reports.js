@@ -29,9 +29,14 @@ const ReportView = {
                 <div class="text-left">
                     <h2 class="text-3xl font-black text-slate-800 tracking-tighter">ระบบรายงาน</h2>
                 </div>
-                <button @click="printReport" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:bg-black transition-all flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95">
-                    <i class="fas fa-print text-lg"></i> พิมพ์เอกสาร
-                </button>
+                <div class="flex gap-2">
+                    <button @click="exportCSV" class="bg-emerald-600 text-white px-5 md:px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 text-sm md:text-base">
+                        <i class="fas fa-file-csv text-lg"></i> <span class="hidden md:inline">โหลด CSV</span><span class="md:hidden">CSV</span>
+                    </button>
+                    <button @click="printReport" class="bg-slate-900 text-white px-5 md:px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 text-sm md:text-base">
+                        <i class="fas fa-print text-lg"></i> <span class="hidden md:inline">พิมพ์เอกสาร</span><span class="md:hidden">Print</span>
+                    </button>
+                </div>
             </div>
 
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -79,49 +84,48 @@ const ReportView = {
                         <h3 class="text-xl font-bold text-slate-700 mb-6 border-b pb-4 text-left flex items-center gap-3">
                             <i class="fas fa-clipboard-list text-blue-500"></i> รายการวัตถุดิบคงเหลือ <span v-if="filterCategory" class="text-blue-500 text-sm">({{ filterCategory }})</span>
                         </h3>
-                        <table class="w-full text-left bg-white">
-                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-300">
-                                <tr>
-                                    <th class="p-5 text-center w-16">ลำดับ</th>
-                                    <th class="p-5 text-left">รหัส / ชื่อวัตถุดิบ</th>
-                                    <th class="p-5 text-center">หน่วยนับ</th>
-                                    <th class="p-5 text-right">ราคา/หน่วย</th>
-                                    <th class="p-5 text-right">คงเหลือในคลัง</th>
-                                    <th class="p-5 text-right">มูลค่ารวม</th>
-                                </tr>
-                            </thead>
-                            
-                            <tbody v-for="group in paginatedGroupedStock" :key="group.name">
-                                <tr class="bg-slate-100">
-                                    <td colspan="6" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
-                                          หมวดหมู่: {{ group.name }}
-                                    </td>
-                                </tr>
-                                <tr v-for="(item, index) in group.items" :key="item.id" class="border-b border-slate-200 hover:bg-slate-50 transition">
-                                    <td class="py-4 px-6 text-center text-slate-500">{{ index + 1 }}</td>
-                                    <td class="py-4 px-6 text-left">
-                                        <div class="text-[10px] text-orange-500 font-black mb-0.5 tracking-wider">{{ item.sku || item.id.substring(0, 8).toUpperCase() }}</div>
-                                        <div class="font-black text-slate-800">{{ item.name }}</div>
-                                    </td>
-                                    <td class="py-4 px-6 text-center text-slate-600 text-xs font-bold">{{ item.unit }}</td>
-                                    <td class="py-4 px-6 text-right font-mono text-slate-600">฿{{ Math.round(item.price || 0).toLocaleString() }}</td>
-                                    <td class="py-4 px-6 text-right">
-                                        <span :class="Number(item.qty) <= Number(item.min) ? 'text-red-600 font-black' : 'text-slate-700 font-bold'" class="text-xl font-mono">
-                                            {{ Math.round(item.qty).toLocaleString() }}
-                                        </span>
-                                    </td>
-                                    <td class="py-4 px-6 text-right font-mono font-black text-slate-700">
-                                        ฿{{ Math.round((item.qty || 0) * (item.price || 0)).toLocaleString() }}
-                                    </td>
-                                </tr>
-                                <tr v-if="group.showSubtotal" class="bg-slate-50 border-b-2 border-slate-300">
-                                    <td colspan="5" class="py-3 px-6 text-right font-bold text-slate-600 text-sm">รวมมูลค่าหมวด {{ group.name }} (ทั้งหมด):</td>
-                                    <td class="py-3 px-6 text-right font-black text-blue-700 font-mono text-lg">฿{{ Math.round(group.totalValue).toLocaleString() }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div v-if="totalStockItems === 0" class="py-16 text-center text-slate-400 font-bold text-lg border-b">
-                            ไม่พบข้อมูลในหมวดหมู่นี้
+                        <div class="overflow-auto max-h-[60vh] rounded-2xl border border-slate-200 custom-scrollbar">
+                            <table class="w-full text-left bg-white relative">
+                                <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold sticky top-0 z-20 shadow-md">
+                                    <tr>
+                                        <th class="p-5 text-center w-16 align-middle">ลำดับ</th>
+                                        <th class="p-5 text-left align-middle">รหัส / ชื่อวัตถุดิบ</th>
+                                        <th class="p-5 text-center align-middle">หน่วยนับ</th>
+                                        <th class="p-5 text-right align-middle">ราคา/หน่วย</th>
+                                        <th class="p-5 text-right align-middle">คงเหลือในคลัง</th>
+                                        <th class="p-5 text-right align-middle">มูลค่ารวม</th>
+                                    </tr>
+                                </thead>
+                                <tbody v-for="group in paginatedGroupedStock" :key="group.name">
+                                    <tr class="bg-slate-100">
+                                        <td colspan="6" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
+                                              หมวดหมู่: {{ group.name }}
+                                        </td>
+                                    </tr>
+                                    <tr v-for="(item, index) in group.items" :key="item.id" class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                        <td class="py-4 px-6 text-center text-slate-500">{{ index + 1 }}</td>
+                                        <td class="py-4 px-6 text-left">
+                                            <div class="text-[10px] text-orange-500 font-black mb-0.5 tracking-wider">{{ item.sku || item.id.substring(0, 8).toUpperCase() }}</div>
+                                            <div class="font-black text-slate-800">{{ item.name }}</div>
+                                        </td>
+                                        <td class="py-4 px-6 text-center text-slate-600 text-xs font-bold">{{ item.unit }}</td>
+                                        <td class="py-4 px-6 text-right font-mono text-slate-600">฿{{ Math.round(item.price || 0).toLocaleString() }}</td>
+                                        <td class="py-4 px-6 text-right">
+                                            <span :class="Number(item.qty) <= Number(item.min) ? 'text-red-600 font-black' : 'text-slate-700 font-bold'" class="text-xl font-mono">
+                                                {{ Math.round(item.qty).toLocaleString() }}
+                                            </span>
+                                        </td>
+                                        <td class="py-4 px-6 text-right font-mono font-black text-slate-700">
+                                            ฿{{ Math.round((item.qty || 0) * (item.price || 0)).toLocaleString() }}
+                                        </td>
+                                    </tr>
+                                    <tr v-if="group.showSubtotal" class="bg-slate-50 border-b-2 border-slate-300">
+                                        <td colspan="5" class="py-3 px-6 text-right font-bold text-slate-600 text-sm">รวมมูลค่าหมวด {{ group.name }} (ทั้งหมด):</td>
+                                        <td class="py-3 px-6 text-right font-black text-blue-700 font-mono text-lg">฿{{ Math.round(group.totalValue).toLocaleString() }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div v-if="totalStockItems === 0" class="py-16 text-center text-slate-400 font-bold text-lg border-b">ไม่พบข้อมูลในหมวดหมู่นี้</div>
                         </div>
                     </div>
                 </div>
@@ -130,14 +134,14 @@ const ReportView = {
                     <h3 class="text-xl font-bold text-orange-600 mb-6 border-b pb-4 text-left flex items-center gap-3">
                         <i class="fas fa-shopping-cart text-2xl"></i> ตารางรายการสั่งซื้อประจำวัน <span v-if="filterCategory" class="text-orange-400 text-sm">({{ filterCategory }})</span>
                     </h3>
-                    <div v-if="paginatedGroupedPurchase.length > 0">
-                        <table class="w-full bg-white">
-                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-300">
+                    <div v-if="paginatedGroupedPurchase.length > 0" class="overflow-auto max-h-[60vh] rounded-2xl border border-slate-200 custom-scrollbar">
+                        <table class="w-full bg-white relative">
+                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold sticky top-0 z-20 shadow-md">
                                 <tr>
-                                    <th class="p-5 text-center w-16">ลำดับ</th>
-                                    <th class="p-5 text-left">รหัส / รายการวัตถุดิบ</th>
-                                    <th class="p-5 text-center">จุดแจ้งเตือน</th>
-                                    <th class="p-5 text-right">จำนวนที่ต้องซื้ออย่างน้อย</th>
+                                    <th class="p-5 text-center w-16 align-middle">ลำดับ</th>
+                                    <th class="p-5 text-left align-middle">รหัส / รายการวัตถุดิบ</th>
+                                    <th class="p-5 text-center align-middle">จุดแจ้งเตือน</th>
+                                    <th class="p-5 text-right align-middle">จำนวนที่ต้องซื้ออย่างน้อย</th>
                                 </tr>
                             </thead>
                             <tbody v-for="group in paginatedGroupedPurchase" :key="group.name">
@@ -178,20 +182,18 @@ const ReportView = {
                             <input type="date" v-model="endDate" class="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer">
                         </div>
                     </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left bg-white">
-                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold border-b border-slate-300">
+                    <div class="overflow-auto max-h-[60vh] rounded-2xl border border-slate-200 custom-scrollbar">
+                        <table class="w-full text-left bg-white relative">
+                            <thead class="bg-slate-200 text-slate-700 text-[14px] uppercase tracking-wide font-bold sticky top-0 z-20 shadow-md">
                                 <tr>
-                                    <th class="p-5 text-center w-16">ลำดับ</th>
-                                    <th class="p-5 text-left">วัน / เวลา</th>
-                                    <th class="p-5 text-left">รหัส / รายการ</th>
-                                    <th class="p-5 text-center">ประเภท</th>
-                                    <th class="p-5 text-right">จำนวน</th>
-                                    <th class="p-5 text-right">รวมเป็นเงิน</th>
+                                    <th class="p-5 text-center w-16 align-middle">ลำดับ</th>
+                                    <th class="p-5 text-left align-middle">วัน / เวลา</th>
+                                    <th class="p-5 text-left align-middle">รหัส / รายการ</th>
+                                    <th class="p-5 text-center align-middle">ประเภท</th>
+                                    <th class="p-5 text-right align-middle">จำนวน</th>
+                                    <th class="p-5 text-right align-middle">รวมเป็นเงิน</th>
                                 </tr>
                             </thead>
-                            
                             <tbody v-for="group in paginatedGroupedHistory" :key="group.name">
                                 <tr class="bg-slate-100">
                                     <td colspan="6" class="py-3 px-6 font-black text-slate-700 text-[13px] uppercase tracking-wide border-y border-slate-300">
@@ -227,9 +229,7 @@ const ReportView = {
                                 </tr>
                             </tbody>
                         </table>
-                        <div v-if="totalHistoryItems === 0" class="py-16 text-center text-slate-400 font-bold text-lg border-b">
-                            ไม่พบประวัติการทำรายการในช่วงเวลาที่ระบุ
-                        </div>
+                        <div v-if="totalHistoryItems === 0" class="py-16 text-center text-slate-400 font-bold text-lg border-b">ไม่พบประวัติการทำรายการในช่วงเวลาที่ระบุ</div>
                     </div>
                 </div>
 
@@ -277,7 +277,7 @@ const ReportView = {
                         <tr>
                             <th class="col-index">ลำดับ</th>
                             <th class="text-left">รหัสสินค้า</th>
-                            <th class="text-left">ชื่อสินค้า</th>
+                            <th class="text-left">ชื่อ</th>
                             <th class="text-center">หน่วยนับ</th>
                             <th class="text-right">ราคา/หน่วย</th>
                             <th class="text-right">ยอดคงเหลือ</th>
@@ -288,7 +288,9 @@ const ReportView = {
                         <tr v-for="(item, index) in printStockData" :key="item.id">
                             <td class="text-center">{{ index + 1 }}</td>
                             <td>{{ item.sku || item.id.substring(0, 8).toUpperCase() }}</td>
-                            <td>{{ item.name }}</td>
+                            <td>
+                                {{ item.name }}
+                            </td>
                             <td class="text-center">{{ item.unit }}</td>
                             <td class="text-right">{{ Math.round(item.price || 0).toLocaleString() }}</td>
                             <td class="text-right">{{ Math.round(item.qty).toLocaleString() }}</td>
@@ -309,7 +311,7 @@ const ReportView = {
                             <tr>
                                 <th class="col-index">ลำดับ</th>
                                 <th class="text-left">รหัสสินค้า</th>
-                                <th class="text-left">ชื่อสินค้า</th>
+                                <th class="text-left">ชื่อ</th>
                                 <th class="text-center">หน่วยนับ</th>
                                 <th class="text-right">คงเหลือปัจจุบัน</th>
                                 <th class="text-right">จุดสั่งซื้อ (Min)</th>
@@ -320,7 +322,9 @@ const ReportView = {
                             <tr v-for="(item, index) in printPurchaseData" :key="item.id">
                                 <td class="text-center">{{ index + 1 }}</td>
                                 <td>{{ item.sku || item.id.substring(0, 8).toUpperCase() }}</td>
-                                <td>{{ item.name }}</td>
+                                <td>
+                                    {{ item.name }}
+                                </td>
                                 <td class="text-center">{{ item.unit }}</td>
                                 <td class="text-right">{{ Math.round(item.qty).toLocaleString() }}</td>
                                 <td class="text-right">{{ Math.round(item.min).toLocaleString() }}</td>
@@ -342,7 +346,7 @@ const ReportView = {
                                 <th rowspan="2" class="col-index">ลำดับ</th>
                                 <th rowspan="2" class="text-left">วัน/เวลา</th>
                                 <th rowspan="2" class="text-left">รหัสสินค้า</th>
-                                <th rowspan="2" class="text-left">ชื่อสินค้า</th>
+                                <th rowspan="2" class="text-left">ชื่อ</th>
                                 <th colspan="2" class="text-center" style="border-bottom: 1px solid black;">จำนวนหน่วย</th>
                                 <th colspan="2" class="text-center" style="border-bottom: 1px solid black;">มูลค่า (บาท)</th>
                             </tr>
@@ -389,71 +393,25 @@ const ReportView = {
                     margin: 8mm; 
                     size: A4 portrait; 
                 }
-                
-                body, html, #app { 
-                    background-color: white !important; 
-                    font-family: 'Sarabun', 'Tahoma', sans-serif !important;
-                    color: black !important;
-                    font-size: 11pt !important;
-                    padding: 0 !important; 
-                    margin: 0 !important;
-                }
-
+                body, html, #app { background-color: white !important; font-family: 'Sarabun', 'Tahoma', sans-serif !important; color: black !important; font-size: 11pt !important; padding: 0 !important; margin: 0 !important; }
                 .no-print { display: none !important; }
                 nav, sidebar, header, .mobile-header { display: none !important; }
-                
                 .print-only { display: block !important; width: 100%; }
-                .print-container { 
-                    padding: 0 !important; 
-                    box-sizing: border-box !important;
-                }
-
-                table.formal-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 10pt;
-                    margin-top: 10px;
-                }
+                .print-container { padding: 0 !important; box-sizing: border-box !important; }
                 
-                table.formal-table thead {
-                    display: table-header-group; 
-                    border-top: 2px solid black;
-                    border-bottom: 1px solid black;
-                }
-                table.formal-table th {
-                    padding: 10px 4px;
-                    font-weight: bold;
-                    vertical-align: middle !important;
-                }
-                table.formal-table td {
-                    padding: 6px 4px;
-                    border: none !important; 
-                    vertical-align: top;
-                }
+                table.formal-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-top: 10px; }
+                table.formal-table thead { display: table-header-group; border-top: 2px solid black; border-bottom: 1px solid black; }
+                table.formal-table th { padding: 10px 4px; font-weight: bold; vertical-align: middle !important; }
+                table.formal-table td { padding: 6px 4px; border: none !important; vertical-align: top; }
                 
-                .grand-total td {
-                    font-weight: bold;
-                    font-size: 12pt;
-                    border-top: 2px solid black;
-                    border-bottom: 3px double black;
-                    padding: 10px 4px;
-                }
-
+                .grand-total td { font-weight: bold; font-size: 12pt; border-top: 2px solid black; border-bottom: 3px double black; padding: 10px 4px; }
+                
                 .text-left { text-align: left !important; }
                 .text-right { text-align: right !important; }
                 .text-center { text-align: center !important; }
                 .col-index { width: 40px; text-align: center; }
-
-                .footer-container {
-                    margin-top: 30px;
-                    border-top: 1px solid black; 
-                    padding-top: 5px;
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 9pt;
-                    page-break-inside: avoid;
-                }
-
+                
+                .footer-container { margin-top: 30px; border-top: 1px solid black; padding-top: 5px; display: flex; justify-content: space-between; font-size: 9pt; page-break-inside: avoid; }
                 tr { break-inside: avoid; page-break-inside: avoid; }
             }
         </component>
@@ -489,9 +447,6 @@ const ReportView = {
       });
     },
 
-    // ----------------------------------------------------
-    // สำหรับหน้า Print: ดึงข้อมูลเป็น List ยาว (Flat Array)
-    // ----------------------------------------------------
     printStockData() {
         return this.activeStockData.slice().sort((a, b) => {
             const catA = a.cat || a.type || 'ทั่วไป';
@@ -509,12 +464,14 @@ const ReportView = {
         });
     },
     printHistoryData() {
-        return this.filteredHistoryLogs.slice().sort((a, b) => b.timestamp - a.timestamp);
+        return this.filteredHistoryLogs.slice().sort((a, b) => b.timestamp - a.timestamp).sort((a, b) => {
+            const catA = a.itemCat || 'ทั่วไป';
+            const catB = b.itemCat || 'ทั่วไป';
+            if (catA !== catB) return catA.localeCompare(catB, 'th');
+            return 0; 
+        });
     },
 
-    // ----------------------------------------------------
-    // TAB 1: สต๊อก (สำหรับ Web UI)
-    // ----------------------------------------------------
     totalStockItems() { return this.activeStockData.length; },
     totalStockPages() { return Math.ceil(this.totalStockItems / this.itemsPerPage) || 1; },
     groupedStock() {
@@ -547,23 +504,13 @@ const ReportView = {
             if (itemsInPage.length > 0) {
                 const lastItemOfGroup = group.items[group.items.length - 1];
                 const showSubtotal = itemsInPage.includes(lastItemOfGroup);
-
-                result.push({
-                    ...group,
-                    items: itemsInPage,
-                    showSubtotal: showSubtotal
-                });
+                result.push({ ...group, items: itemsInPage, showSubtotal: showSubtotal });
             }
         });
         return result;
     },
-    totalStockValue() {
-        return this.groupedStock.reduce((sum, g) => sum + g.totalValue, 0);
-    },
+    totalStockValue() { return this.groupedStock.reduce((sum, g) => sum + g.totalValue, 0); },
 
-    // ----------------------------------------------------
-    // TAB 2: สั่งซื้อ (สำหรับ Web UI)
-    // ----------------------------------------------------
     purchaseItemsFlat() { return this.activeStockData.filter((i) => Number(i.qty) <= Number(i.min)); },
     totalPurchaseItems() { return this.purchaseItemsFlat.length; },
     totalPurchasePages() { return Math.ceil(this.totalPurchaseItems / this.itemsPerPage) || 1; },
@@ -592,16 +539,11 @@ const ReportView = {
                 }
                 currentIndex++;
             });
-            if (itemsInPage.length > 0) {
-                result.push({ ...group, items: itemsInPage });
-            }
+            if (itemsInPage.length > 0) { result.push({ ...group, items: itemsInPage }); }
         });
         return result;
     },
 
-    // ----------------------------------------------------
-    // TAB 3: ประวัติ (สำหรับ Web UI)
-    // ----------------------------------------------------
     filteredHistoryLogs() {
         let logs = [];
         this.activeStockData.forEach((i) => {
@@ -640,9 +582,7 @@ const ReportView = {
     groupedHistory() {
       const groups = {};
       this.filteredHistoryLogs.forEach(log => {
-          if(!groups[log.itemCat]) {
-              groups[log.itemCat] = { name: log.itemCat, logs: [], totalIn: 0, totalOut: 0 };
-          }
+          if(!groups[log.itemCat]) { groups[log.itemCat] = { name: log.itemCat, logs: [], totalIn: 0, totalOut: 0 }; }
           groups[log.itemCat].logs.push(log);
           if(log.type === 'in') groups[log.itemCat].totalIn += log.totalPrice;
           if(log.type === 'out') groups[log.itemCat].totalOut += log.totalPrice;
@@ -650,7 +590,6 @@ const ReportView = {
 
       const sorted = Object.values(groups).sort((a,b) => a.name.localeCompare(b.name, 'th'));
       sorted.forEach(g => g.logs.sort((a,b) => b.timestamp - a.timestamp));
-      
       return sorted;
     },
     paginatedGroupedHistory() {
@@ -676,12 +615,8 @@ const ReportView = {
         });
         return result;
     },
-    totalHistoryAmtIn() {
-        return this.groupedHistory.reduce((sum, g) => sum + g.totalIn, 0);
-    },
-    totalHistoryAmtOut() {
-        return this.groupedHistory.reduce((sum, g) => sum + g.totalOut, 0);
-    },
+    totalHistoryAmtIn() { return this.groupedHistory.reduce((sum, g) => sum + g.totalIn, 0); },
+    totalHistoryAmtOut() { return this.groupedHistory.reduce((sum, g) => sum + g.totalOut, 0); },
 
     totalUsageCost() {
       let total = 0;
@@ -713,6 +648,96 @@ const ReportView = {
     }
   },
   methods: {
+    exportCSV() {
+      let csvContent = "\uFEFF"; 
+      let filename = "report.csv";
+      let rows = [];
+
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear() + 543;
+      const fileDate = day + "-" + month + "-" + year;
+
+      if (this.activeTab === 'stock') {
+          filename = "Stock_Report_" + fileDate + ".csv";
+          rows.push(["ลำดับ", "รหัสสินค้า", "ชื่อสินค้า", "หมวดหมู่", "หน่วยนับ", "ราคา/หน่วย", "ยอดคงเหลือ", "มูลค่ารวม"]);
+          
+          this.printStockData.forEach((item, index) => {
+              let cat = item.cat || item.type || 'ทั่วไป';
+              let price = item.price || 0;
+              let qty = item.qty || 0;
+              let total = qty * price;
+              rows.push([index + 1, item.sku || '', item.name || '', cat, item.unit || '', price, qty, total]);
+          });
+          rows.push(["", "", "", "", "", "", "ยอดมูลค่าคงเหลือรวมทั้งสิ้น (Grand Total)", this.totalStockValue]);
+          
+      } else if (this.activeTab === 'purchase') {
+          filename = "Purchase_Report_" + fileDate + ".csv";
+          rows.push(["ลำดับ", "รหัสสินค้า", "ชื่อสินค้า", "หมวดหมู่", "หน่วยนับ", "คงเหลือปัจจุบัน", "จุดสั่งซื้อ (Min)", "ต้องสั่งเพิ่ม"]);
+          
+          this.printPurchaseData.forEach((item, index) => {
+              let cat = item.cat || item.type || 'ทั่วไป';
+              let qty = item.qty || 0;
+              let min = item.min || 0;
+              let needToBuy = (min - qty) + 1;
+              rows.push([index + 1, item.sku || '', item.name || '', cat, item.unit || '', qty, min, needToBuy]);
+          });
+          
+      } else if (this.activeTab === 'history') {
+          filename = "History_Report_" + fileDate + ".csv";
+          rows.push(["ลำดับ", "วัน/เวลา", "รหัสสินค้า", "ชื่อสินค้า", "หมวดหมู่", "ประเภท", "จำนวน", "รวมเป็นเงิน"]);
+          
+          this.printHistoryData.forEach((log, index) => {
+              let typeStr = log.type === 'in' ? 'รับเข้า' : 'เบิกออก';
+              rows.push([
+                  index + 1, 
+                  log.displayDate, 
+                  log.itemSku || log.itemIdShort || '', 
+                  log.item || '', 
+                  log.itemCat || '', 
+                  typeStr, 
+                  log.qty || 0, 
+                  log.totalPrice || 0
+              ]);
+          });
+          rows.push(["", "", "", "", "", "ยอดรวมสุทธิ (Grand Total)", "รับเข้ารวม: " + this.totalHistoryAmtIn, "เบิกจ่ายรวม: " + this.totalHistoryAmtOut]);
+      }
+
+      const processRow = function (row) {
+          let finalVal = '';
+          for (let j = 0; j < row.length; j++) {
+              let innerValue = row[j] === null || row[j] === undefined ? '' : row[j].toString();
+              if (row[j] instanceof Date) {
+                  innerValue = row[j].toLocaleString();
+              }
+              let result = innerValue.replace(/"/g, '""');
+              if (result.search(/("|,|\n)/g) >= 0) {
+                  result = '"' + result + '"';
+              }
+              if (j > 0) finalVal += ',';
+              finalVal += result;
+          }
+          return finalVal + '\n';
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+          csvContent += processRow(rows[i]);
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", filename);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
+    },
+
     printReport() {
       const user = firebase.auth().currentUser;
       this.printUser = user ? user.email : "ผู้ดูแลระบบ";
@@ -721,7 +746,7 @@ const ReportView = {
       const day = String(now.getDate()).padStart(2, "0");
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const year = now.getFullYear() + 543;
-      this.printDateShort = `${day}/${month}/${year}`;
+      this.printDateShort = day + "/" + month + "/" + year;
 
       setTimeout(() => {
         window.print();
