@@ -164,38 +164,34 @@
     <script src="components/activitylog.js"></script>
     <script src="components/manageuser.js"></script>
 
-    <script>
+   <script>
     const { createApp, ref, onMounted } = Vue;
     
     const app = createApp({
         setup() {
-            // --- 1. ตัวแปรสถานะหน้าจอ ---
             const currentPage = ref('login'); 
             const showLogoutModal = ref(false);
             const globalAlert = ref({ show: false, title: '', message: '' }); 
             
-            // --- 2. ตัวแปรข้อมูลผู้ใช้และสิทธิ์ ---
+            const isSidebarOpen = ref(false);
+            
             const currentUserEmail = ref('');
             const userRole = ref(''); 
 
-            // --- [เพิ่มใหม่] ระบบตั้งเวลา Logout อัตโนมัติ (8 ชั่วโมง) ---
-            const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 ชั่วโมง (หน่วยเป็นมิลลิวินาที)
-            let sessionTimer = null; // ตัวแปรเก็บ Timer
+            const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; 
+            let sessionTimer = null; 
 
-            // ฟังก์ชันตรวจสอบเวลา
             const checkSession = () => {
                 const loginTime = localStorage.getItem('loginTimestamp');
                 if (loginTime) {
                     const timeElapsed = Date.now() - parseInt(loginTime, 10);
                     if (timeElapsed > SESSION_TIMEOUT_MS) {
-                        // ถ้าเวลาผ่านไปเกิน 8 ชั่วโมง ให้บังคับ Logout
                         firebase.auth().signOut().then(() => {
                             globalAlert.value = {
                                 show: true,
                                 title: 'หมดเวลาเข้าใช้งาน',
-                                message: 'ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้งเพื่อความปลอดภัยครับ'
+                                message: 'ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้ง'
                             };
-                            // ล้างข้อมูลที่จำไว้
                             localStorage.removeItem('loginTimestamp');
                             sessionStorage.removeItem('isLogged');
                             if(sessionTimer) clearInterval(sessionTimer);
@@ -204,14 +200,12 @@
                 }
             };
 
-            // --- ข้อมูลเริ่มต้น ---
-            const categories = ref(['เนื้อสัตว์', 'ผักสด', 'เครื่องปรุง', 'เครื่องดื่ม']);
-            const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค']);
+            const categories = ref(['เนื้อสัตว์', 'ผักสด', 'อาหารทะเล', 'ของใช้', 'เครื่องปรุง', 'เครื่องดื่ม']);
+            const units = ref(['กก.', 'ชิ้น', 'แกลลอน', 'ถุง', 'ขวด', 'แพ็ค', 'กระสอบ', 'แผง']);
             const inventory = ref([]);
             const suppliers = ref([]);
             const wastageLogs = ref([]);
 
-            // --- 4. ตรวจสอบสถานะล็อกอินและสิทธิ์ ---
             onMounted(() => {
                 firebase.auth().onAuthStateChanged((user) => {
                     if (user) {
@@ -225,7 +219,6 @@
                             localStorage.setItem('loginTimestamp', Date.now().toString());
                         }
 
-                        // [เพิ่มใหม่] สั่งให้ฟังก์ชันตรวจเวลาทำงานเงียบๆ ทุกๆ 1 นาที (60,000 ms)
                         if(sessionTimer) clearInterval(sessionTimer);
                         sessionTimer = setInterval(checkSession, 60000);
 
@@ -244,34 +237,33 @@
                                         message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
                                     };
                                     db.collection("activity_logs").add({
-                            userEmail: user.email,
-                            module: 'ระบบล็อกอิน',
-                            action: 'ERROR',
-                            details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                                        userEmail: user.email,
+                                        module: 'ระบบล็อกอิน',
+                                        action: 'ERROR',
+                                        details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
+                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
                                     firebase.auth().signOut(); 
                                     return;
                                 }
 
                                 currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
                                 
-                                 if (!sessionStorage.getItem('isLogged')) {
-                        db.collection("activity_logs").add({
-                            userEmail: user.email,
-                            module: 'ระบบล็อกอิน',
-                            action: 'LOGIN',
-                            details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        sessionStorage.setItem('isLogged', 'true'); 
-                    }
+                                if (!sessionStorage.getItem('isLogged')) {
+                                    db.collection("activity_logs").add({
+                                        userEmail: user.email,
+                                        module: 'ระบบล็อกอิน',
+                                        action: 'LOGIN',
+                                        details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
+                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                    sessionStorage.setItem('isLogged', 'true'); 
+                                }
 
                             } else {
                                 userRole.value = 'Staff';
                                 currentPage.value = 'stock';
                                 if (!sessionStorage.getItem('isLogged')) {
-                                    db.collection("activity_logs").add({ /*...*/ });
                                     sessionStorage.setItem('isLogged', 'true');
                                 }
                             }
@@ -279,12 +271,10 @@
                         .catch(err => { console.error("Error", err); currentPage.value = 'stock'; });
 
                     } else {
-                        // ถ้าไม่ได้ล็อกอิน หรือเพิ่ง Logout ให้ล้างค่าทั้งหมดทิ้ง
                         currentPage.value = 'login';
                         userRole.value = '';
                         currentUserEmail.value = '';
                         
-                        // [เพิ่มใหม่] ล้างเวลาและ Timer
                         localStorage.removeItem('loginTimestamp');
                         sessionStorage.removeItem('isLogged');
                         if(sessionTimer) clearInterval(sessionTimer);
@@ -292,10 +282,12 @@
                 });
             });
 
-            // --- 5. ฟังก์ชันการทำงานต่างๆ ---
-            const handleLogin = () => { 
-                // ปล่อยให้ onAuthStateChanged เป็นตัวจัดการเปลี่ยนหน้า
+            const changePage = (pageName) => {
+                currentPage.value = pageName;
+                isSidebarOpen.value = false;
             };
+
+            const handleLogin = () => {};
 
             const confirmLogout = () => {
                 const emailToLog = currentUserEmail.value || 'Unknown';
@@ -310,12 +302,9 @@
                     return firebase.auth().signOut();
                 }).then(() => {
                     showLogoutModal.value = false;
-                    
-                    //ไว้ล้างค่า
                     localStorage.removeItem('loginTimestamp');
                     sessionStorage.removeItem('isLogged');
                     if(sessionTimer) clearInterval(sessionTimer);
-                    
                 }).catch((error) => {
                     console.error("Logout Error:", error);
                 });
@@ -333,11 +322,12 @@
                 inventory.value = newData;
             };
 
-            // --- 6. ส่งค่าออกไปให้ Template HTML ใช้งาน (ต้องมีชุดเดียวเท่านั้น) ---
             return {
                 currentPage, 
                 showLogoutModal, 
                 globalAlert,
+                isSidebarOpen, 
+                changePage,    
                 inventory, 
                 suppliers,
                 wastageLogs,
@@ -354,7 +344,6 @@
         }
     });
 
-    // --- 7. ลงทะเบียน Component (ผูกไฟล์ js ย่อยๆ เข้ากับ Vue) ---
     app.component('page-login', LoginView);
     app.component('page-stock', StockView);
     app.component('page-reports', ReportView);
@@ -364,8 +353,7 @@
     app.component('page-activitylog', ActivityLogView);
     app.component('page-manageuser', ManageUserView);
     
-    // เริ่มทำงานระบบ
     app.mount('#app');
-</script>
+    </script>
 </body>
 </html>
