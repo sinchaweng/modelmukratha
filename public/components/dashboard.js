@@ -2,7 +2,7 @@ const DashboardView = {
     props: ['categories'], 
     template: `
     <section class="animate-in fade-in duration-500">
-        <h2 class="text-3xl font-bold text-slate-800 mb-8 text-left">วิเคราะห์ภาพรวมร้าน</h2>
+        <h2 class="text-3xl font-bold text-slate-800 mb-8 text-left">แดชบอร์ดสรุปผล</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-orange-500 text-left hover:shadow-md transition">

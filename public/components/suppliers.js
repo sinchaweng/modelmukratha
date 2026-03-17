@@ -3,7 +3,7 @@ const SupplierView = {
 
     data() {
         return {
-            suppliers: [], // ข้อมูลดิบทั้งหมดจาก Firebase
+            suppliers: [], 
             showModal: false,
             showCatModal: false,
             newCatName: '',
@@ -20,13 +20,11 @@ const SupplierView = {
                 type: 'info',
                 title: '',
                 message: '',
-                inputValue: '',
                 confirmAction: null
             }
         }
     },
 
-    // 1. เพิ่ม Computed Property เพื่อกรองเฉพาะคู่ค้าที่ยัง Active มาแสดง
     computed: {
         activeSuppliers() {
             return this.suppliers.filter(s => s.active !== false);
@@ -37,7 +35,7 @@ const SupplierView = {
     <section class="w-full text-left animate-in fade-in duration-500">
         <div class="flex justify-between items-center mb-8 border-b pb-6">
             <div class="text-left">
-                <h2 class="text-3xl font-bold text-slate-800">ข้อมูลคู่ค้า (Suppliers)</h2>
+                <h2 class="text-3xl font-bold text-slate-800">ข้อมูลคู่ค้า</h2>
             </div>
             <div class="flex gap-2">
                 <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
@@ -56,22 +54,26 @@ const SupplierView = {
                         <i class="fas fa-building text-orange-600 text-xl"></i>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black bg-slate-50 px-3 py-1.5 rounded-full text-slate-600 border border-slate-200 uppercase tracking-tighter shadow-sm">
-                            {{ s.productCat }}
-                        </span>
                         <button @click="removeSupplier(s.id)" class="p-2 text-slate-600 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
+                        <span class="text-[10px] font-black bg-slate-50 px-3 py-1.5 rounded-full text-slate-600 border border-slate-200 uppercase tracking-tighter shadow-sm">
+                            {{ s.productCat }}
+                        </span>
                     </div>
                 </div>
                 <h4 class="font-black text-xl text-slate-800 mb-1">{{ s.name }}</h4>
                 <p class="text-slate-600 text-sm mb-6 flex items-center gap-2 font-medium">
-                    <i class="fas fa-phone-alt text-xs"></i> {{ s.contact }}
+                    <i class="fas fa-phone-alt text-xs"></i> {{ s.contact || '-' }}
                 </p>
                 <div class="flex gap-2">
-                    <a :href="'tel:' + s.contact" class="flex-1 py-3 bg-orange-50 text-orange-600 text-[11px] font-black rounded-2xl text-center hover:bg-orange-600 hover:text-white transition shadow-sm uppercase">
+                    <a v-if="s.contact && s.contact.length >= 9" :href="'tel:' + s.contact.replace(/-/g, '')" class="flex-1 py-3 bg-orange-50 text-orange-600 text-[11px] font-black rounded-2xl text-center hover:bg-orange-600 hover:text-white transition shadow-sm uppercase">
                         <i class="fas fa-phone-alt mr-1"></i> โทรติดต่อ
                     </a>
+                    <button v-else disabled class="flex-1 py-3 bg-slate-50 text-slate-400 text-[11px] font-black rounded-2xl text-center cursor-not-allowed uppercase">
+                        <i class="fas fa-phone-slash mr-1"></i> ไม่มีเบอร์ติดต่อ
+                    </button>
+
                     <button @click="openEditModal(s)" class="px-5 py-3 bg-slate-100 text-slate-600 text-[11px] font-black rounded-2xl hover:bg-slate-200 transition uppercase">
                         <i class="fas fa-edit mr-1"></i> แก้ไข
                     </button>
@@ -89,27 +91,27 @@ const SupplierView = {
                         <i class="fas" :class="editingId !== null ? 'fa-edit text-blue-400' : 'fa-truck-loading text-orange-500'"></i> 
                         {{ editingId !== null ? ' แก้ไขข้อมูลคู่ค้า' : ' ลงทะเบียนคู่ค้าใหม่' }}
                     </span>
-                    <button @click="showModal = false" class="text-slate-600 hover:text-white text-2xl transition hover:rotate-90">&times;</button>
                 </div>
                 <div class="p-8 space-y-6">
                     <div>
-                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">ชื่อร้านคู่ค้า / บริษัท</label>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">ชื่อร้านคู่ค้า / บริษัท <span class="text-red-500">*</span></label>
                         <input v-model="form.name" type="text" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition text-slate-800 font-bold text-lg" placeholder="ระบุชื่อบริษัท">
                     </div>
                     <div>
-                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">เบอร์โทรศัพท์ติดต่อ</label>
-                        <input v-model="form.contact" type="text" maxlength="10" @input="form.contact = form.contact.replace(/[^0-9]/g, '')" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition text-slate-700 font-mono" placeholder="08X-XXX-XXXX">
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">เบอร์โทรศัพท์ติดต่อ <span class="text-red-500">*</span></label>
+                        <input v-model="form.contact" type="text" maxlength="12" @input="form.contact = form.contact.replace(/[^0-9-]/g, '')" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition text-slate-700 font-mono" placeholder="08X-XXX-XXXX">
                     </div>
                     <div>
-                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">หมวดหมู่สินค้าหลัก</label>
+                        <label class="text-[10px] font-black text-slate-600 uppercase mb-1 block tracking-widest">หมวดหมู่สินค้าหลัก <span class="text-red-500">*</span></label>
                         <select v-model="form.productCat" class="w-full border-b-2 border-slate-100 p-2 outline-none focus:border-orange-500 transition bg-white text-slate-700 font-bold text-sm cursor-pointer">
                             <option value="" disabled>กรุณาเลือกหมวดหมู่</option>
+                            <option value="ทั่วไป">ทั่วไป</option>
                             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                         </select>
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="closeModal" class="flex-1 py-3 bg-slate-300 text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
                     <button @click="saveSupplier" class="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:bg-orange-700 transition uppercase text-sm tracking-widest transform active:scale-95">
                         {{ editingId !== null ? 'ยืนยันการแก้ไข' : 'บันทึกข้อมูล' }}
                     </button>
@@ -121,7 +123,6 @@ const SupplierView = {
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
                 <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase tracking-tighter">
                     <span><i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่</span>
-                    <button @click="showCatModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
                 </div>
                 <div class="p-8">
                     <label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
@@ -168,7 +169,7 @@ const SupplierView = {
                     {{ alertModal.message }}
                 </div>
                 <div class="p-4 bg-slate-50">
-                    <button @click="alertModal.show = false" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
+                    <button @click="closeAlert" class="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl">เข้าใจแล้ว</button>
                 </div>
             </div>
         </div>
@@ -197,6 +198,23 @@ const SupplierView = {
             }).catch(err => console.error("Log Error:", err));
         },
 
+        triggerAlert(title, message, confirmAction = null) {
+            this.alertModal = {
+                show: true,
+                type: 'danger',
+                title: title,
+                message: message,
+                confirmAction: confirmAction
+            };
+        },
+        closeAlert() {
+            this.alertModal.show = false;
+            if (this.alertModal.confirmAction) {
+                this.alertModal.confirmAction();
+                this.alertModal.confirmAction = null;
+            }
+        },
+
         promptNewCategory() {
             this.newCatName = '';
             this.showCatModal = true;
@@ -211,15 +229,14 @@ const SupplierView = {
                 this.showCatModal = false;
                 this.newCatName = '';
             } else {
-                this.alertModal = {
-                    show: true,
-                    type: 'danger',
-                    title: 'ยังไม่ได้ระบุชื่อ',
-                    message: 'กรุณาใส่ชื่อหมวดหมู่ที่ต้องการเพิ่ม',
-                    inputValue: '',
-                    confirmAction: () => { this.alertModal.show = false; }
-                };
+                this.triggerAlert('ยังไม่ได้ระบุชื่อ', 'กรุณาใส่ชื่อหมวดหมู่ที่ต้องการเพิ่ม');
             }
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.editingId = null;
+            this.form = { name: '', contact: '', productCat: '' };
         },
 
         openAddModal() {
@@ -236,54 +253,36 @@ const SupplierView = {
 
         saveSupplier() {
             if (!this.form.name || !this.form.contact || !this.form.productCat) {
-                this.alertModal = {
-                    show: true,
-                    type: 'danger',
-                    title: 'ข้อมูลไม่ครบถ้วน',
-                    message: 'กรุณาระบุข้อมูลให้ครบถ้วน',
-                    inputValue: '',
-                    confirmAction: () => { this.alertModal.show = false; }
-                };
+                this.triggerAlert('ข้อมูลไม่ครบถ้วน', 'กรุณาระบุข้อมูลให้ครบถ้วนทุกช่อง');
                 return;
             }
 
-            if (this.form.contact.length !== 10) {
-                this.alertModal = {
-                    show: true,
-                    type: 'danger',
-                    title: 'เบอร์โทรศัพท์ไม่ถูกต้อง',
-                    message: 'กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก',
-                    inputValue: '',
-                    confirmAction: () => { this.alertModal.show = false; }
-                };
+            if (this.form.contact.length < 9 || this.form.contact.length > 12) {
+                this.triggerAlert('เบอร์โทรศัพท์ไม่ถูกต้อง', 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (9-12 หลัก)');
                 return;
             }
 
             if (this.editingId !== null) {
-                // แก้ไขข้อมูล
                 const updateData = { ...this.form };
                 delete updateData.id;
                 
                 db.collection("suppliers").doc(this.editingId).update(updateData)
                 .then(() => { 
                     this.logActivity('UPDATE', `แก้ไขข้อมูลคู่ค้า: ${updateData.name}`);
-                    this.showModal = false; 
-                    this.editingId = null; 
+                    this.closeModal();
                 })
                 .catch((error) => console.error("Error updating: ", error));
             } else {
-                // 2. เพิ่มข้อมูลใหม่ พร้อมตั้งค่า active: true
                 db.collection("suppliers").add({
                     name: this.form.name,
                     contact: this.form.contact,
                     productCat: this.form.productCat,
-                    active: true, // แทรก active: true ตรงนี้
+                    active: true, 
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 })
                 .then(() => { 
                     this.logActivity('CREATE', `เพิ่มคู่ค้าใหม่: ${this.form.name} (${this.form.productCat})`);
-                    this.showModal = false; 
-                    this.form = { name: '', contact: '', productCat: '' };
+                    this.closeModal();
                 })
                 .catch((error) => console.error("Error adding: ", error));
             }
@@ -295,7 +294,6 @@ const SupplierView = {
             this.showDeleteModal = true;
         },
 
-        // 3. เปลี่ยนจากการ Delete ถาวร เป็นการ Update active เป็น false (Soft Delete)
         confirmDelete() {
             if (!this.itemToDelete) return;
             

@@ -25,7 +25,7 @@ const StockView = {
         confirmAction: null,
       },
       newItem: {
-        sku: "", // [เพิ่มใหม่] ฟิลด์รหัสสินค้า
+        sku: "",
         name: "",
         cat: "",
         supplier: "",
@@ -40,7 +40,7 @@ const StockView = {
     <section class="w-full text-left animate-in fade-in duration-500">
         <div class="flex justify-between items-end mb-8 no-print border-b pb-6">
             <div class="text-left">
-                <h2 class="text-3xl font-bold text-slate-800">จัดการคลังวัตถุดิบ</h2>
+                <h2 class="text-3xl font-bold text-slate-800">จัดการวัตถุดิบ</h2>
             </div>
             <div class="flex gap-2" v-if="userRole === 'Admin'">
                 <button @click="promptNewCategory" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs border border-slate-200">
@@ -100,7 +100,7 @@ const StockView = {
                                 {{ item.qty }} <span class="text-[10px] font-normal text-slate-600 uppercase ml-1">{{ item.unit }}</span>
                             </div>
                             <div v-if="item.qty <= item.min" class="mt-1">
-                                <span class="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">⚠️ ควรซื้อเพิ่ม</span>
+                                <span class="bg-red-500 text-white px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">ควรซื้อเพิ่ม!</span>
                             </div>
                         </td>
                         <td class="p-5">
@@ -124,12 +124,10 @@ const StockView = {
 
         <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-green-600 p-6 text-white text-lg font-bold flex justify-between items-center uppercase tracking-tighter">
-                    <span>📦 ลงทะเบียนวัตถุดิบใหม่</span>
-                    <button @click="closeAddModal" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
+                <div class="bg-green-600 p-6 text-white text-lg font-bold uppercase tracking-tighter">
+                    ลงทะเบียนวัตถุดิบใหม่
                 </div>
                 <div class="p-8 space-y-5">
-                    
                     <div class="grid grid-cols-2 gap-6">
                         <div>
                             <label class="text-[10px] font-bold text-slate-600 uppercase mb-1 block tracking-widest">รหัสสินค้า (SKU)</label>
@@ -140,7 +138,6 @@ const StockView = {
                             <input v-model="newItem.name" type="text" placeholder="ระบุชื่อ..." class="w-full border-b-2 p-2 outline-none focus:border-green-600 font-bold text-lg transition">
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-6">
                         <div>
                             <label class="text-[10px] font-bold text-slate-600 uppercase mb-1 block">หมวดหมู่</label>
@@ -157,7 +154,6 @@ const StockView = {
                             </select>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-6">
                          <div>
                             <label class="text-[10px] font-bold text-slate-600 uppercase mb-1 block">หน่วยนับ</label>
@@ -191,9 +187,10 @@ const StockView = {
 
         <div v-if="showEditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border-2 border-white" v-if="editingItem">
-                <div class="bg-blue-600 p-6 text-white text-lg font-bold uppercase tracking-tighter">✏️ แก้ไขข้อมูลวัตถุดิบ</div>
+                <div class="bg-blue-600 p-6 text-white text-lg font-bold uppercase tracking-tighter">
+                    ✏️ แก้ไขข้อมูลวัตถุดิบ
+                </div>
                 <div class="p-8 space-y-5">
-                    
                     <div class="grid grid-cols-2 gap-6 mb-2">
                         <div>
                             <label class="text-[10px] font-bold text-slate-600 uppercase mb-1 block">รหัสสินค้า</label>
@@ -226,7 +223,7 @@ const StockView = {
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
-                    <button @click="showEditModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="showEditModal = false; editingItem = null" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
                     <button @click="saveEdit" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg hover:bg-blue-700 transition text-sm uppercase">อัปเดตข้อมูล</button>
                 </div>
             </div>
@@ -235,7 +232,7 @@ const StockView = {
         <div v-if="activeItem" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden text-center border-2 border-white animate-in zoom-in duration-200">
                 <div :class="actionType === 'in' ? 'bg-blue-600' : 'bg-orange-600'" class="p-6 text-white text-xl font-black uppercase tracking-widest">
-                    {{ actionType === 'in' ? '📥 รับเข้าสินค้า' : '📤 เบิกจ่ายสินค้า' }}
+                    {{ actionType === 'in' ? 'รับเข้าวัตถุดิบ' : 'เบิกจ่ายวัตถุดิบ' }}
                 </div>
                 <div class="p-10 text-center">
                     <div class="text-orange-500 font-black text-xs">{{ activeItem.sku }}</div>
@@ -255,16 +252,14 @@ const StockView = {
         
         <div v-if="showCatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase">
-                    <span><i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่</span>
-                    <button @click="showCatModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
+                <div class="bg-slate-800 p-6 text-white text-lg font-bold uppercase">
+                    <i class="fas fa-tags mr-2"></i> เพิ่มหมวดหมู่ใหม่
                 </div>
                 <div class="p-8"><label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหมวดหมู่</label>
-
-    <input v-model="newCatName" @keyup.enter="saveCategory" type="text" 
-        placeholder="เช่น ผักสด, เครื่องปรุง..." 
-        class="w-full border-b-2 border-slate-200 p-2 outline-none focus:border-orange-500 font-bold text-xl transition text-slate-900 placeholder:text-slate-500">
-</div>
+                    <input v-model="newCatName" @keyup.enter="saveCategory" type="text" 
+                        placeholder="เช่น ผักสด, เครื่องปรุง..." 
+                        class="w-full border-b-2 border-slate-200 p-2 outline-none focus:border-orange-500 font-bold text-xl transition text-slate-900 placeholder:text-slate-500">
+                </div>
                 <div class="p-6 bg-slate-50 flex gap-4 border-t">
                     <button @click="showCatModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
                     <button @click="saveCategory" class="flex-1 py-3 bg-slate-800 text-white font-bold rounded-2xl shadow-lg hover:bg-black transition text-sm uppercase">บันทึกหมวดหมู่</button>
@@ -274,9 +269,8 @@ const StockView = {
 
         <div v-if="showUnitModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
             <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border-2 border-white">
-                <div class="bg-slate-800 p-6 text-white text-lg font-bold flex justify-between items-center uppercase">
-                    <span><i class="fas fa-balance-scale mr-2"></i> เพิ่มหน่วยนับ</span>
-                    <button @click="showUnitModal = false" class="text-white hover:rotate-90 transition text-2xl">&times;</button>
+                <div class="bg-slate-800 p-6 text-white text-lg font-bold uppercase">
+                    <i class="fas fa-balance-scale mr-2"></i> เพิ่มหน่วยนับ
                 </div>
                 <div class="p-8">
                     <label class="text-[10px] font-bold text-slate-600 uppercase mb-2 block tracking-widest">ชื่อหน่วยนับ</label>
@@ -305,7 +299,7 @@ const StockView = {
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-3 border-t">
-                    <button @click="showDeleteModal = false" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
+                    <button @click="showDeleteModal = false; itemToDelete = null" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
                     <button @click="confirmDelete" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition text-sm uppercase tracking-widest">ยืนยันนำออก</button>
                 </div>
             </div>
@@ -332,13 +326,11 @@ const StockView = {
   computed: {
     filteredItems() {
       return this.stockData.filter((i) => {
-        // [อัปเดต] ให้ช่อง Search ค้นหาจาก SKU ได้ด้วย
         const matchNameOrSku =
-          i.name.toLowerCase().includes(this.search.toLowerCase()) ||
+          (i.name || "").toLowerCase().includes(this.search.toLowerCase()) ||
           (i.sku || "").toLowerCase().includes(this.search.toLowerCase());
         const matchCat = this.filterCat === "" || i.cat === this.filterCat;
-        const isActive = i.active !== false;
-        return matchNameOrSku && matchCat && isActive;
+        return matchNameOrSku && matchCat;
       });
     },
   },
@@ -346,7 +338,10 @@ const StockView = {
     db.collection("inventory").onSnapshot((querySnapshot) => {
       const items = [];
       querySnapshot.forEach((doc) => {
-        items.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.active !== false) {
+            items.push({ id: doc.id, ...data });
+        }
       });
       this.stockData = items;
     });
@@ -354,7 +349,10 @@ const StockView = {
     db.collection("suppliers").onSnapshot((querySnapshot) => {
       const sups = [];
       querySnapshot.forEach((doc) => {
-        sups.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.active !== false) {
+            sups.push({ id: doc.id, ...data });
+        }
       });
       this.suppliersData = sups;
     });
