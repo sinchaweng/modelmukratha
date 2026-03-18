@@ -40,24 +40,38 @@ const DashboardView = {
                 </div>
             </div>
 
-            <div class="bg-white p-8 rounded-3xl shadow-sm border flex flex-col items-start">
-                <h3 class="font-bold text-slate-700 mb-6 text-left w-full border-b pb-4 text-lg"><i class="fas fa-chart-bar text-red-400 mr-2"></i> มูลค่าของเสียย้อนหลัง 5 วัน</h3>
-                <div class="flex items-end justify-between h-48 w-full gap-3 px-2">
-                    <div v-for="day in recentWastageChart" :key="day.date" class="flex-1 flex flex-col items-center group relative">
-                        <div class="absolute -top-8 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
-                            ฿ {{ day.cost.toLocaleString() }}
-                        </div>
-                        
-                        <div class="bg-red-400 w-full rounded-t-xl transition-all duration-1000 group-hover:bg-red-500 cursor-pointer shadow-sm relative" :style="{ height: day.percent + '%' }">
-                            <span v-if="day.cost > 0" class="absolute -top-5 left-1/2 transform -translate-x-1/2 text-[9px] font-bold text-red-600">
-                                {{ day.cost >= 1000 ? (day.cost/1000).toFixed(1) + 'k' : day.cost }}
-                            </span>
-                        </div>
-                        <span class="text-[10px] text-slate-600 mt-2 font-black uppercase tracking-tighter">{{ day.label }}</span>
-                    </div>
-                </div>
-            </div>
+          <div class="bg-white p-8 rounded-[3rem] shadow-sm border flex flex-col items-start min-h-[450px]">
+    <h3 class="font-bold text-slate-700 mb-6 text-left w-full border-b pb-4 text-lg">
+        <i class="fas fa-chart-bar text-red-500 mr-2"></i> มูลค่าของเสียย้อนหลัง 5 วัน
+    </h3>
+    
+    <div class="relative w-full h-64 mt-12 mb-10 flex items-end justify-between px-4 gap-4 border-l-2 border-b-2 border-slate-100">
+        
+        <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
+            <div class="border-t border-slate-100 w-full"></div>
+            <div class="border-t border-slate-100 w-full"></div>
+            <div class="border-t border-slate-100 w-full"></div>
         </div>
+
+        <div v-for="day in recentWastageChart" :key="day.date" 
+             class="flex-1 flex flex-col items-center group relative z-10 h-full justify-end">
+            
+            <span v-if="day.cost > 0" 
+                  class="absolute text-[11px] font-black text-red-600 mb-2 transition-transform group-hover:scale-125 bg-white/90 px-1 rounded shadow-sm"
+                  :style="{ bottom: day.percent + '%' }">
+                ฿{{ day.cost.toLocaleString() }}
+            </span>
+
+            <div class="w-full max-w-[40px] bg-gradient-to-t from-red-600 to-red-400 rounded-t-xl transition-all duration-1000 ease-out group-hover:from-red-700 group-hover:to-red-500 shadow-sm"
+                 :style="{ height: day.percent + '%' }">
+            </div>
+
+            <span class="absolute -bottom-10 text-[11px] text-slate-500 font-bold uppercase tracking-tighter">
+                {{ day.label }}
+            </span>
+        </div>
+    </div>
+</div>
     </section>
     `,
   data() {
@@ -87,52 +101,57 @@ const DashboardView = {
     },
 
     catStats() {
-      const totalItems = this.activeStockData.length;
-      if (totalItems === 0) return [];
+    const totalItems = this.activeStockData.length;
+    if (totalItems === 0) {
+        // ถ้ายังไม่มีสินค้าเลย ให้ทุกหมวดเป็น 0%
+        return this.categories.map(c => ({ name: c, count: 0, percent: 0 }));
+    }
 
-      let currentSum = 0;
-      const stats = this.categories.map((c, index) => {
-        const count = this.activeStockData.filter(
-          (i) => i.cat === c || i.type === c,
-        ).length;
+    let currentSum = 0;
+    const stats = this.categories.map((c, index) => {
+        const count = this.activeStockData.filter(i => (i.cat === c || i.type === c)).length;
+        
+        // คำนวณ % ปกติก่อน
         let percent = Math.round((count / totalItems) * 100);
-
-        // ตรวจสอบว่าเป็นหมวดสุดท้ายที่มีรายการหรือไม่
+        
+        // เช็คว่าเป็นหมวดสุดท้าย "ที่มีสินค้า" หรือไม่
         const isLastCategory = index === this.categories.length - 1;
 
         if (isLastCategory) {
-          // หมวดสุดท้าย ให้เอา 100 ลบด้วยยอดรวมที่ปัดเศษไปก่อนหน้า
-          // เพื่อให้ผลรวมออกมาเป็น 100% เป๊ะเสมอ
-          percent = 100 - currentSum;
+            percent = 100 - currentSum;
+            // ป้องกันค่าติดลบ ถ้าผลรวมเกินให้เป็น 0
+            if (percent < 0) percent = 0; 
         } else {
-          currentSum += percent;
+            currentSum += percent;
         }
 
         return { name: c, count: count, percent: percent };
-      });
+    });
 
-      return stats;
-    },
+    return stats;
+},
 
     recentWastageChart() {
       const daysToShow = 5;
       const chartData = [];
       const today = new Date();
 
+      // 1. สร้างโครงข้อมูล 5 วันย้อนหลัง
       for (let i = daysToShow - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-
-        const dateString = d.toISOString().split("T")[0];
-        const label = d.toLocaleDateString("th-TH", {
-          day: "numeric",
-          month: "short",
+        chartData.push({
+          date: d.toISOString().split("T")[0],
+          label: d.toLocaleDateString("th-TH", {
+            day: "numeric",
+            month: "short",
+          }),
+          cost: 0,
+          percent: 0,
         });
-
-        chartData.push({ date: dateString, label: label, cost: 0, percent: 0 });
       }
 
-      // [แก้ไข] กรองเฉพาะประวัติของเสียที่ไม่ได้ถูกลบ (active !== false) มาแสดงในกราฟด้วย
+      // 2. เติมข้อมูลจาก Firebase
       this.wastageLogs
         .filter((log) => log.active !== false)
         .forEach((log) => {
@@ -144,12 +163,18 @@ const DashboardView = {
           }
         });
 
+      // 3. คำนวณ % โดยหาค่าสูงสุดเพื่อทำเป็น 100%
       const maxCost = Math.max(...chartData.map((d) => d.cost));
-      const baseMax = maxCost > 0 ? maxCost : 1;
 
       chartData.forEach((d) => {
-        d.percent = maxCost > 0 ? (d.cost / baseMax) * 100 : 0;
-        if (d.percent > 0 && d.percent < 10) d.percent = 10;
+        if (maxCost > 0 && d.cost > 0) {
+          // คำนวณ % จริง
+          let calculated = (d.cost / maxCost) * 100;
+          // ดักไว้ว่าถ้ามีราคา อย่างน้อยต้องขึ้นมา 15% จะได้ไม่เตี้ยเกินไป
+          d.percent = calculated < 15 ? 15 : calculated;
+        } else {
+          d.percent = 0;
+        }
       });
 
       return chartData;

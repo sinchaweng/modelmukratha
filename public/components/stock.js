@@ -46,7 +46,7 @@ const StockView = {
         unit: "",
         price: 0,
       },
-      
+
       currentPage: 1,
       itemsPerPage: 20,
     };
@@ -538,29 +538,71 @@ const StockView = {
     },
 
     openAddModal() {
-      this.newItem = { sku: "", name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
+      this.newItem = {
+        sku: "",
+        name: "",
+        cat: "",
+        supplier: "",
+        qty: 0,
+        min: 0,
+        unit: "",
+        price: 0,
+      };
       this.showAddModal = true;
     },
 
     closeAddModal() {
       this.showAddModal = false;
-      this.newItem = { sku: "", name: "", cat: "", supplier: "", qty: 0, min: 0, unit: "", price: 0 };
+      this.newItem = {
+        sku: "",
+        name: "",
+        cat: "",
+        supplier: "",
+        qty: 0,
+        min: 0,
+        unit: "",
+        price: 0,
+      };
     },
 
     addNewItem() {
       if (this.userRole !== "Admin") return;
 
+      // 1. ตรวจสอบค่าว่างพื้นฐาน
       if (!this.newItem.name || !this.newItem.cat || !this.newItem.unit) {
-        return this.triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาระบุข้อมูลให้ครบถ้วน");
+        return this.triggerAlert(
+          "ข้อมูลไม่ครบถ้วน",
+          "กรุณาระบุข้อมูลให้ครบถ้วน (ชื่อ, หมวดหมู่ และหน่วยนับ)",
+        );
       }
 
+      // 2. [เพิ่มใหม่] ดักรหัสสินค้า (SKU) ซ้ำ
+      if (this.newItem.sku) {
+        const isDuplicate = this.stockData.some(
+          (item) =>
+            item.sku.toLowerCase().trim() ===
+            this.newItem.sku.toLowerCase().trim(),
+        );
+
+        if (isDuplicate) {
+          return this.triggerAlert(
+            "รหัสสินค้าซ้ำ",
+            `รหัส SKU "${this.newItem.sku}" มีอยู่ในระบบแล้ว กรุณาใช้รหัสอื่น`,
+          );
+        }
+      }
+
+      // 3. บันทึกข้อมูล (Logic เดิมของน้อง)
       const itemToSave = { ...this.newItem, active: true };
 
       db.collection("inventory")
         .add(itemToSave)
         .then(() => {
           const codeInfo = this.newItem.sku ? `[${this.newItem.sku}] ` : "";
-          this.logActivity("CREATE", `เพิ่มวัตถุดิบใหม่: ${codeInfo}${this.newItem.name}`);
+          this.logActivity(
+            "CREATE",
+            `เพิ่มวัตถุดิบใหม่: ${codeInfo}${this.newItem.name}`,
+          );
           this.closeAddModal();
         })
         .catch((error) => {
@@ -608,7 +650,10 @@ const StockView = {
         .doc(this.itemToDelete.id)
         .update({ active: false })
         .then(() => {
-          this.logActivity("DELETE", `นำวัตถุดิบออกจากระบบ: ${this.itemToDelete.name}`);
+          this.logActivity(
+            "DELETE",
+            `นำวัตถุดิบออกจากระบบ: ${this.itemToDelete.name}`,
+          );
           this.showDeleteModal = false;
           this.itemToDelete = null;
         })
@@ -626,7 +671,10 @@ const StockView = {
 
     confirmAction() {
       if (this.actionQty <= 0) {
-        return this.triggerAlert("จำนวนไม่ถูกต้อง", "กรุณาระบุจำนวนที่มากกว่า 0");
+        return this.triggerAlert(
+          "จำนวนไม่ถูกต้อง",
+          "กรุณาระบุจำนวนที่มากกว่า 0",
+        );
       }
 
       let newQty = this.activeItem.qty;
@@ -634,7 +682,10 @@ const StockView = {
         newQty += this.actionQty;
       } else {
         if (newQty < this.actionQty) {
-          return this.triggerAlert("สต๊อกไม่พอ", "จำนวนวัตถุดิบในคลังมีไม่เพียงพอสำหรับการเบิกออก");
+          return this.triggerAlert(
+            "สต๊อกไม่พอ",
+            "จำนวนวัตถุดิบในคลังมีไม่เพียงพอสำหรับการเบิกออก",
+          );
         }
         newQty -= this.actionQty;
       }
@@ -655,7 +706,10 @@ const StockView = {
         })
         .then(() => {
           const actionText = this.actionType === "in" ? "รับเข้า" : "เบิกออก";
-          this.logActivity("UPDATE", `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}`);
+          this.logActivity(
+            "UPDATE",
+            `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}`,
+          );
           this.activeItem = null;
         })
         .catch((error) => {
@@ -681,27 +735,37 @@ const StockView = {
     saveCategory() {
       if (this.userRole !== "Admin") return;
       const val = this.newCatName.trim();
-      if (val) {
-        if (this.categories.includes(val)) {
-          return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหมวดหมู่นี้ในระบบแล้ว");
-        }
-        this.$emit("add-category", val);
-        this.logActivity("CREATE", `เพิ่มหมวดหมู่: ${val}`);
-        this.newCatName = "";
+      if (!val) {
+        return this.triggerAlert(
+          "ข้อมูลไม่ครบถ้วน",
+          "กรุณาระบุชื่อหมวดหมู่ที่ต้องการเพิ่ม",
+        );
       }
+
+      if (this.categories.includes(val)) {
+        return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหมวดหมู่นี้ในระบบแล้ว");
+      }
+
+      this.$emit("add-category", val);
+      this.logActivity("CREATE", `เพิ่มหมวดหมู่: ${val}`);
+      this.newCatName = "";
     },
 
     saveUnit() {
       if (this.userRole !== "Admin") return;
       const val = this.newUnitName.trim();
-      if (val) {
-        if (this.units.includes(val)) {
-          return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหน่วยนับนี้ในระบบแล้ว");
-        }
-        this.$emit("add-unit", val);
-        this.logActivity("CREATE", `เพิ่มหน่วยนับ: ${val}`);
-        this.newUnitName = "";
+      if (!val) {
+        return this.triggerAlert(
+          "ข้อมูลไม่ครบถ้วน",
+          "กรุณาระบุชื่อหน่วยนับที่ต้องการเพิ่ม",
+        );
       }
+      if (this.units.includes(val)) {
+        return this.triggerAlert("ข้อมูลซ้ำ", "มีชื่อหน่วยนับนี้ในระบบแล้ว");
+      }
+      this.$emit("add-unit", val);
+      this.logActivity("CREATE", `เพิ่มหน่วยนับ: ${val}`);
+      this.newUnitName = "";
     },
 
     startEditCat(index, name) {
