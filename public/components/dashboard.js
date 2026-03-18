@@ -40,7 +40,7 @@ const DashboardView = {
                 </div>
             </div>
 
-          <div class="bg-white p-8 rounded-[3rem] shadow-sm border flex flex-col items-start min-h-[450px]">
+          <div class="bg-white p-8 rounded-3xl shadow-sm border flex flex-col items-start min-h-[450px]">
     <h3 class="font-bold text-slate-700 mb-6 text-left w-full border-b pb-4 text-lg">
         <i class="fas fa-chart-bar text-red-500 mr-2"></i> มูลค่าของเสียย้อนหลัง 5 วัน
     </h3>

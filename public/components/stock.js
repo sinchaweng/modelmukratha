@@ -9,6 +9,9 @@ const StockView = {
       showDeleteModal: false,
       itemToDelete: null,
 
+      // สำหรับเก็บเหตุผลการเบิก
+      actionNote: "",
+
       // ตัวจัดการ Modal หมวดหมู่และหน่วยนับ
       showCatModal: false,
       showUnitModal: false,
@@ -127,16 +130,25 @@ const StockView = {
                             </div>
                         </td>
                         <td class="p-5">
-                            <div class="flex justify-center gap-1.5">
-                                <button @click="openAction(item, 'in')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-blue-700 transition">รับเข้า</button>
-                                <button @click="openAction(item, 'out')" class="bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-orange-700 transition">เบิกออก</button>
-                                
-                                <div v-if="userRole === 'Admin'" class="flex gap-1 ml-1 pl-2 border-l border-slate-200">
-                                    <button @click="startEdit(item)" class="text-slate-600 hover:text-blue-600 p-1.5 transition"><i class="fas fa-edit text-xs"></i></button>
-                                    <button @click="deleteItem(item)" class="text-slate-600 hover:text-red-500 p-1.5 transition"><i class="fas fa-trash-alt text-xs"></i></button>
-                                </div>
-                            </div>
-                        </td>
+    <div class="flex justify-center gap-1.5">
+        <button v-if="userRole === 'Admin'" 
+                @click="openAction(item, 'in')" 
+                class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-blue-700 transition">
+            รับเข้า
+        </button>
+
+        <button v-if="userRole !== 'Admin'" 
+                @click="openAction(item, 'out')" 
+                class="bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-orange-700 transition">
+            เบิกออก
+        </button>
+        
+        <div v-if="userRole === 'Admin'" class="flex gap-1 ml-1 pl-2 border-l border-slate-200">
+            <button @click="startEdit(item)" class="text-slate-600 hover:text-blue-600 p-1.5 transition"><i class="fas fa-edit text-xs"></i></button>
+            <button @click="deleteItem(item)" class="text-slate-600 hover:text-red-500 p-1.5 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+        </div>
+    </div>
+</td>
                     </tr>
                 </tbody>
                 
@@ -286,6 +298,13 @@ const StockView = {
                         <input v-model.number="actionQty" type="number" class="w-24 text-center text-5xl font-black border-b-4 border-slate-100 py-2 outline-none focus:border-slate-300 font-mono" placeholder="0">
                         <button @click="actionQty++" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg">+</button>
                     </div>
+                </div>
+                 <div v-if="actionType === 'out'" class="px-10 pb-6">
+        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-2 text-left">ระบุรายละเอียด/เหตุผลการเบิก</label>
+        <textarea v-model="actionNote" 
+                  placeholder="เช่น เบิกไปใช้ในครัว, ของจัดเลี้ยง ฯลฯ"
+                  class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none focus:border-orange-500 text-sm font-medium resize-none"
+                  rows="2"></textarea>
                 </div>
                 <div class="p-6 flex gap-3 bg-slate-50">
                     <button @click="activeItem = null" class="flex-1 py-3 bg-slate-300 text-slate-900 font-bold text-sm uppercase tracking-widest rounded-2xl hover:bg-slate-400 transition">ยกเลิก</button>
@@ -677,6 +696,13 @@ const StockView = {
         );
       }
 
+      if (this.actionType === "out" && !this.actionNote.trim()) {
+        return this.triggerAlert(
+          "ข้อมูลไม่ครบ",
+          "กรุณาระบุเหตุผลหรือรายละเอียดการเบิกออก",
+        );
+      }
+
       let newQty = this.activeItem.qty;
       if (this.actionType === "in") {
         newQty += this.actionQty;
@@ -694,6 +720,8 @@ const StockView = {
         date: new Date().toISOString(),
         type: this.actionType,
         qty: this.actionQty,
+        note: this.actionNote.trim() || "-",
+        user: firebase.auth().currentUser?.email || "System",
       };
 
       const updatedHistory = [newHistory, ...(this.activeItem.history || [])];
@@ -706,11 +734,16 @@ const StockView = {
         })
         .then(() => {
           const actionText = this.actionType === "in" ? "รับเข้า" : "เบิกออก";
+          const detailText = this.actionNote
+            ? ` (เหตุผล: ${this.actionNote})`
+            : "";
+
           this.logActivity(
             "UPDATE",
-            `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}`,
+            `${actionText}สต๊อก: ${this.activeItem.name} จำนวน ${this.actionQty} ${this.activeItem.unit}${detailText}`,
           );
           this.activeItem = null;
+          this.actionNote = "";
         })
         .catch((error) => {
           console.error("Error updating stock: ", error);
