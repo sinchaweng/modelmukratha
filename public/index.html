@@ -292,254 +292,247 @@
     <script src="components/manageuser.js"></script>
 
     <script>
-      const { createApp, ref, onMounted } = Vue;
-
-      const app = createApp({
+    const { createApp, ref, onMounted } = Vue;
+    
+    const app = createApp({
         setup() {
-          const currentPage = ref("login");
-          const showLogoutModal = ref(false);
-          const globalAlert = ref({ show: false, title: "", message: "" });
+            const currentPage = ref('login'); 
+            const showLogoutModal = ref(false);
+            const globalAlert = ref({ show: false, title: '', message: '' }); 
+            const isSidebarOpen = ref(false);
+            
+            const currentUserEmail = ref('');
+            const userRole = ref(''); 
 
-          const isSidebarOpen = ref(false);
+            const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; 
+            let sessionTimer = null; 
 
-          const currentUserEmail = ref("");
-          const userRole = ref("");
-
-          const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
-          let sessionTimer = null;
-
-          const checkSession = () => {
-            const loginTime = localStorage.getItem("loginTimestamp");
-            if (loginTime) {
-              const timeElapsed = Date.now() - parseInt(loginTime, 10);
-              if (timeElapsed > SESSION_TIMEOUT_MS) {
-                firebase
-                  .auth()
-                  .signOut()
-                  .then(() => {
-                    globalAlert.value = {
-                      show: true,
-                      title: "หมดเวลาเข้าใช้งาน",
-                      message:
-                        "ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้ง",
-                    };
-                    localStorage.removeItem("loginTimestamp");
-                    sessionStorage.removeItem("isLogged");
-                    if (sessionTimer) clearInterval(sessionTimer);
-                  });
-              }
-            }
-          };
-
-          const categories = ref([
-            "เนื้อสัตว์",
-            "ผักสด",
-            "อาหารทะเล",
-            "ของใช้",
-            "เครื่องปรุง",
-            "เครื่องดื่ม",
-          ]);
-          const units = ref([
-            "กก.",
-            "ชิ้น",
-            "แกลลอน",
-            "ถุง",
-            "ขวด",
-            "แพ็ค",
-            "กระสอบ",
-            "แผง",
-          ]);
-          const inventory = ref([]);
-          const suppliers = ref([]);
-          const wastageLogs = ref([]);
-          const addCategory = (newCat) => {
-            if (newCat && !categories.value.includes(newCat)) {
-              categories.value.push(newCat);
-            }
-          };
-
-          const addUnit = (newUnit) => {
-            if (newUnit && !units.value.includes(newUnit)) {
-              units.value.push(newUnit);
-            }
-          };
-
-          const editCategory = (payload) => {
-            const idx = categories.value.indexOf(payload.old);
-            if (idx !== -1) categories.value[idx] = payload.new;
-          };
-
-          const deleteCategory = (cat) => {
-            categories.value = categories.value.filter((c) => c !== cat);
-          };
-
-          const editUnit = (payload) => {
-            const idx = units.value.indexOf(payload.old);
-            if (idx !== -1) units.value[idx] = payload.new;
-          };
-
-          const deleteUnit = (unit) => {
-            units.value = units.value.filter((u) => u !== unit);
-          };
-
-          const saveData = (newData) => {
-            inventory.value = newData;
-          };
-
-          onMounted(() => {
-            firebase.auth().onAuthStateChanged((user) => {
-              if (user) {
-                let loginTime = localStorage.getItem("loginTimestamp");
+            const checkSession = () => {
+                const loginTime = localStorage.getItem('loginTimestamp');
                 if (loginTime) {
-                  if (
-                    Date.now() - parseInt(loginTime, 10) >
-                    SESSION_TIMEOUT_MS
-                  ) {
-                    firebase.auth().signOut();
-                    return;
-                  }
-                } else {
-                  localStorage.setItem("loginTimestamp", Date.now().toString());
-                }
-
-                if (sessionTimer) clearInterval(sessionTimer);
-                sessionTimer = setInterval(checkSession, 60000);
-
-                currentUserEmail.value = user.email;
-
-                db.collection("users")
-                  .where("email", "==", user.email)
-                  .get()
-                  .then((querySnapshot) => {
-                    if (!querySnapshot.empty) {
-                      const userData = querySnapshot.docs[0].data();
-                      userRole.value = userData.role || "Staff";
-
-                      if (userData.active === false) {
-                        globalAlert.value = {
-                          show: true,
-                          title: "ระงับการเข้าถึง",
-                          message:
-                            "บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ",
-                        };
-                        db.collection("activity_logs").add({
-                          userEmail: user.email,
-                          module: "ระบบล็อกอิน",
-                          action: "ERROR",
-                          details: "พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)",
-                          timestamp:
-                            firebase.firestore.FieldValue.serverTimestamp(),
+                    const timeElapsed = Date.now() - parseInt(loginTime, 10);
+                    if (timeElapsed > SESSION_TIMEOUT_MS) {
+                        firebase.auth().signOut().then(() => {
+                            globalAlert.value = {
+                                show: true,
+                                title: 'หมดเวลาเข้าใช้งาน',
+                                message: 'ระบบได้นำคุณออกจากระบบเนื่องจากใช้งานเกิน 8 ชั่วโมง กรุณาล็อกอินใหม่อีกครั้ง'
+                            };
+                            localStorage.removeItem('loginTimestamp');
+                            sessionStorage.removeItem('isLogged');
+                            if(sessionTimer) clearInterval(sessionTimer);
                         });
-                        firebase.auth().signOut();
-                        return;
-                      }
-
-                      currentPage.value =
-                        userRole.value === "Admin" ? "dashboard" : "stock";
-
-                      if (!sessionStorage.getItem("isLogged")) {
-                        db.collection("activity_logs").add({
-                          userEmail: user.email,
-                          module: "ระบบล็อกอิน",
-                          action: "LOGIN",
-                          details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
-                          timestamp:
-                            firebase.firestore.FieldValue.serverTimestamp(),
-                        });
-                        sessionStorage.setItem("isLogged", "true");
-                      }
-                    } else {
-                      userRole.value = "Staff";
-                      currentPage.value = "stock";
-                      if (!sessionStorage.getItem("isLogged")) {
-                        sessionStorage.setItem("isLogged", "true");
-                      }
                     }
-                  })
-                  .catch((err) => {
-                    console.error("Error", err);
-                    currentPage.value = "stock";
-                  });
-              } else {
-                currentPage.value = "login";
-                userRole.value = "";
-                currentUserEmail.value = "";
+                }
+            };
 
-                localStorage.removeItem("loginTimestamp");
-                sessionStorage.removeItem("isLogged");
-                if (sessionTimer) clearInterval(sessionTimer);
-              }
+            // [แก้ไข] เปลี่ยนเป็น Array ว่าง เพื่อรอรับข้อมูลจาก Firebase
+            const categories = ref([]);
+            const units = ref([]);
+            const inventory = ref([]);
+            const suppliers = ref([]);
+            const wastageLogs = ref([]);
+
+            onMounted(() => {
+                // [เพิ่มใหม่] สั่งดึงข้อมูล Settings (หมวดหมู่/หน่วยนับ) แบบ Real-time
+                db.collection('settings').doc('global').onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        categories.value = data.categories || [];
+                        units.value = data.units || [];
+                    } else {
+                        // ดักไว้เผื่อลืมรันสคริปต์สร้างฐานข้อมูล
+                        console.warn("ยังไม่มีข้อมูล Settings ในระบบ");
+                    }
+                });
+
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        let loginTime = localStorage.getItem('loginTimestamp');
+                        if (loginTime) {
+                            if (Date.now() - parseInt(loginTime, 10) > SESSION_TIMEOUT_MS) {
+                                firebase.auth().signOut(); 
+                                return;
+                            }
+                        } else {
+                            localStorage.setItem('loginTimestamp', Date.now().toString());
+                        }
+
+                        if(sessionTimer) clearInterval(sessionTimer);
+                        sessionTimer = setInterval(checkSession, 60000);
+
+                        currentUserEmail.value = user.email;
+                        
+                        db.collection("users").where("email", "==", user.email).get()
+                        .then((querySnapshot) => {
+                            if (!querySnapshot.empty) {
+                                const userData = querySnapshot.docs[0].data();
+                                userRole.value = userData.role || 'Staff'; 
+                                
+                                if(userData.active === false) {
+                                    globalAlert.value = {
+                                        show: true,
+                                        title: 'ระงับการเข้าถึง',
+                                        message: 'บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
+                                    };
+                                    db.collection("activity_logs").add({
+                                        userEmail: user.email,
+                                        module: 'ระบบล็อกอิน',
+                                        action: 'ERROR',
+                                        details: 'พยายามเข้าสู่ระบบแต่ถูกระงับบัญชี (Banned)',
+                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                    firebase.auth().signOut(); 
+                                    return;
+                                }
+
+                                currentPage.value = (userRole.value === 'Admin') ? 'dashboard' : 'stock';
+                                
+                                if (!sessionStorage.getItem('isLogged')) {
+                                    db.collection("activity_logs").add({
+                                        userEmail: user.email,
+                                        module: 'ระบบล็อกอิน',
+                                        action: 'LOGIN',
+                                        details: `เข้าสู่ระบบสำเร็จ (สิทธิ์: ${userRole.value})`,
+                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                    sessionStorage.setItem('isLogged', 'true'); 
+                                }
+
+                            } else {
+                                userRole.value = 'Staff';
+                                currentPage.value = 'stock';
+                                if (!sessionStorage.getItem('isLogged')) {
+                                    sessionStorage.setItem('isLogged', 'true');
+                                }
+                            }
+                        })
+                        .catch(err => { console.error("Error", err); currentPage.value = 'stock'; });
+
+                    } else {
+                        currentPage.value = 'login';
+                        userRole.value = '';
+                        currentUserEmail.value = '';
+                        
+                        localStorage.removeItem('loginTimestamp');
+                        sessionStorage.removeItem('isLogged');
+                        if(sessionTimer) clearInterval(sessionTimer);
+                    }
+                });
             });
-          });
 
-          const changePage = (pageName) => {
-            currentPage.value = pageName;
-            isSidebarOpen.value = false;
-          };
+            const changePage = (pageName) => {
+                currentPage.value = pageName;
+                isSidebarOpen.value = false;
+            };
 
-          const handleLogin = () => {};
+            const handleLogin = () => {};
 
-          const confirmLogout = () => {
-            const emailToLog = currentUserEmail.value || "Unknown";
+            const confirmLogout = () => {
+                const emailToLog = currentUserEmail.value || 'Unknown';
 
-            db.collection("activity_logs")
-              .add({
-                userEmail: emailToLog,
-                module: "ระบบล็อกอิน",
-                action: "LOGOUT",
-                details: "ออกจากระบบอย่างปลอดภัย",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-              })
-              .then(() => {
-                return firebase.auth().signOut();
-              })
-              .then(() => {
-                showLogoutModal.value = false;
-                localStorage.removeItem("loginTimestamp");
-                sessionStorage.removeItem("isLogged");
-                if (sessionTimer) clearInterval(sessionTimer);
-              })
-              .catch((error) => {
-                console.error("Logout Error:", error);
-              });
-          };
+                db.collection("activity_logs").add({
+                    userEmail: emailToLog,
+                    module: 'ระบบล็อกอิน',
+                    action: 'LOGOUT', 
+                    details: 'ออกจากระบบอย่างปลอดภัย',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    return firebase.auth().signOut();
+                }).then(() => {
+                    showLogoutModal.value = false;
+                    localStorage.removeItem('loginTimestamp');
+                    sessionStorage.removeItem('isLogged');
+                    if(sessionTimer) clearInterval(sessionTimer);
+                }).catch((error) => {
+                    console.error("Logout Error:", error);
+                });
+            };
 
-          return {
-            currentPage,
-            showLogoutModal,
-            globalAlert,
-            isSidebarOpen,
-            changePage,
-            inventory,
-            suppliers,
-            wastageLogs,
-            categories,
-            units,
-            currentUserEmail,
-            userRole,
-            handleLogin,
-            confirmLogout,
-            addCategory,
-            addUnit,
-            editCategory, 
-            deleteCategory,
-            editUnit,
-            deleteUnit, 
-            saveData,
-          };
-        },
-      });
+            const addCategory = (newCat) => {
+                if (newCat && !categories.value.includes(newCat)) { 
+                    const updated = [...categories.value, newCat];
+                    db.collection('settings').doc('global').update({ categories: updated });
+                }
+            };
 
-      app.component("page-login", LoginView);
-      app.component("page-stock", StockView);
-      app.component("page-reports", ReportView);
-      app.component("page-dashboard", DashboardView);
-      app.component("page-suppliers", SupplierView);
-      app.component("page-wastage", WastageView);
-      app.component("page-activitylog", ActivityLogView);
-      app.component("page-manageuser", ManageUserView);
+            const editCategory = (payload) => {
+                const idx = categories.value.indexOf(payload.old);
+                if (idx !== -1) {
+                    const updated = [...categories.value];
+                    updated[idx] = payload.new;
+                    db.collection('settings').doc('global').update({ categories: updated });
+                }
+            };
 
-      app.mount("#app");
+            const deleteCategory = (cat) => {
+                const updated = categories.value.filter(c => c !== cat);
+                db.collection('settings').doc('global').update({ categories: updated });
+            };
+
+            const addUnit = (newUnit) => {
+                if (newUnit && !units.value.includes(newUnit)) { 
+                    const updated = [...units.value, newUnit];
+                    db.collection('settings').doc('global').update({ units: updated });
+                }
+            };
+
+            const editUnit = (payload) => {
+                const idx = units.value.indexOf(payload.old);
+                if (idx !== -1) {
+                    const updated = [...units.value];
+                    updated[idx] = payload.new;
+                    db.collection('settings').doc('global').update({ units: updated });
+                }
+            };
+
+            const deleteUnit = (unit) => {
+                const updated = units.value.filter(u => u !== unit);
+                db.collection('settings').doc('global').update({ units: updated });
+            };
+
+            const saveData = (newData) => {
+                inventory.value = newData;
+            };
+
+            return {
+                currentPage, 
+                showLogoutModal, 
+                globalAlert,
+                isSidebarOpen,
+                changePage, 
+                inventory, 
+                suppliers,
+                wastageLogs,
+                categories, 
+                units,
+                currentUserEmail, 
+                userRole,         
+                handleLogin,
+                confirmLogout,
+                addCategory, 
+                editCategory,
+                deleteCategory,
+                addUnit,
+                editUnit,
+                deleteUnit,
+                saveData
+            };
+        }
+    });
+
+    app.component('page-login', LoginView);
+    app.component('page-stock', StockView);
+    app.component('page-reports', ReportView);
+    app.component('page-dashboard', DashboardView);
+    app.component('page-suppliers', SupplierView);
+    app.component('page-wastage', WastageView);
+    app.component('page-activitylog', ActivityLogView);
+    app.component('page-manageuser', ManageUserView);
+    
+    app.mount('#app');
     </script>
+</body>
+</html>
   </body>
 </html>
